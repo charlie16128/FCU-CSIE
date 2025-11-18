@@ -1,0 +1,1 @@
+{"name":"Local: 程設4_week3_practice_02","url":"e:\\程式碼\\c\\大一下\\程設4_week3_practice_02.c","tests":[{"id":1746362472677,"input":"3 3\n1 1 1 1 2 2 2 3 3\n2 3\n0 0 1 0 2 0","output":"3\n1"}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"e:\\程式碼\\c\\大一下\\程設4_week3_practice_02.c","group":"local","local":true}

@@ -1,0 +1,1 @@
+{"name":"Local: week6_practice_01","url":"e:\\程式碼\\c\\大一下\\week6_practice_01.c","tests":[{"id":1742997698256,"input":"5555\n0815\n6239\n0\n","output":"32\n17\n111"}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"e:\\程式碼\\c\\大一下\\week6_practice_01.c","group":"local","local":true}

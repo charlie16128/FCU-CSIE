@@ -1,0 +1,1 @@
+{"name":"Local: week5_practice_01","url":"e:\\程式碼\\c\\大一下\\week5_practice_01.c","tests":[{"id":1742390549791,"input":"125 5\n30 3\n80 2\n81 3","output":"125 25 5 1\nBoring!\nBoring!\n81 27 9 3 1"}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"e:\\程式碼\\c\\大一下\\week5_practice_01.c","group":"local","local":true}

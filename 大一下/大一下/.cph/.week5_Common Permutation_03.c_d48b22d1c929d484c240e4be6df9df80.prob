@@ -1,0 +1,1 @@
+{"name":"Local: week5_Common Permutation_03","url":"e:\\程式碼\\c\\大一下\\week5_Common Permutation_03.c","tests":[{"id":1742397273208,"input":"3\n195\n265\n750\n","output":"4 9339\n5 45254\n3 6666"}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"e:\\程式碼\\c\\大一下\\week5_Common Permutation_03.c","group":"local","local":true}

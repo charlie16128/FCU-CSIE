@@ -1,0 +1,1 @@
+{"name":"Local: 程設2_week1_practice_02","url":"e:\\程式碼\\c\\大一下\\程設2_week1_practice_02.c","tests":[{"id":1745416134566,"input":"2\n3 2\nCAT\nTED\n3 3\nCAT\nATE\nTEA","output":"5\n5"}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"e:\\程式碼\\c\\大一下\\程設2_week1_practice_02.c","group":"local","local":true}

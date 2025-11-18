@@ -1,0 +1,88 @@
+// Source code is decompiled from a .class file using FernFlower decompiler (from Intellij IDEA).
+public class MyStack1 {
+   private static int capacity = 5;
+   private static int[] stack;
+   private static int topIndex;
+
+   public MyStack1() {
+   }
+
+   public static boolean isFull() {
+      return topIndex + 1 >= capacity;
+   }
+
+   public static boolean isEmpty() {
+      return topIndex == -1;
+   }
+
+   public static void push(int var0) {
+      if (isFull()) {
+         System.out.println("The Stack is FULL!!!");
+      } else {
+         ++topIndex;
+         stack[topIndex] = var0;
+      }
+   }
+
+   public static int top() {
+      if (isEmpty()) {
+         System.out.println("The Stack is EMPTY!!!");
+         return -1;
+      } else {
+         return stack[topIndex];
+      }
+   }
+
+   public static int pop() {
+      if (isEmpty()) {
+         System.out.println("The Stack is EMPTY!!!");
+         return -1;
+      } else {
+         int var0 = stack[topIndex];
+         --topIndex;
+         return var0;
+      }
+   }
+
+   public static void popall() {
+      if (isEmpty()) {
+         System.out.println("The Stack is EMPTY!!!");
+      } else {
+         for(int var0 = topIndex; var0 >= 0; --var0) {
+            System.out.println(stack[var0]);
+         }
+
+      }
+   }
+
+   public static void main(String[] var0) {
+      System.out.println("Push(1, 2, 3):");
+      push(1);
+      push(2);
+      push(3);
+      System.out.println("Top: " + top());
+      System.out.println("Pop:");
+      pop();
+      System.out.println("Top: " + top());
+      System.out.println("Push(4, 5, 6, 7, 8):");
+      push(4);
+      push(5);
+      push(6);
+      push(7);
+      push(8);
+      System.out.println("Top: " + top());
+      System.out.println("Pop:");
+      pop();
+      System.out.println("Popall:");
+      popall();
+      System.out.println("Pop:");
+      pop();
+      System.out.println("Popall:");
+      popall();
+   }
+
+   static {
+      stack = new int[capacity];
+      topIndex = -1;
+   }
+}
