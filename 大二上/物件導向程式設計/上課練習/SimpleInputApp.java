@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.swing.plaf.TextUI;
 
 public class SimpleInputApp extends JFrame {
 
@@ -20,7 +21,7 @@ public class SimpleInputApp extends JFrame {
         
         // 顯示區域：設定為 5 行 30 列，並讓它不可編輯
         displayArea = new JTextArea(5, 30);
-        displayArea.setEditable(false);
+        displayArea.setEditable(true);
         // 使用 JScrollPane 包裹 displayArea，讓文字多時可以滾動
         JScrollPane scrollPane = new JScrollPane(displayArea);
         
