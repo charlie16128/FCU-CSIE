@@ -14,7 +14,7 @@ public class SimpleCalculator {
     public void init() {
         frame = new JFrame("My Calculator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 500);
+          frame.setSize(400, 500);
         frame.setLayout(new BorderLayout());
         frame.setLocation(0, 0);
 
