@@ -2,6 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "java",
+      "name": "MyGUIClient",
+      "request": "launch",
+      "mainClass": "MyGUIClient",
+      "projectName": "FCU Git_4ed70276"
+    },
+    {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",
