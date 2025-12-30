@@ -87,7 +87,7 @@ public class ReversiServer {
                     break;
                 case "EXIT": // 接收到離開/投降指令
                     if (currentRoom != null) currentRoom.playerExit(this);
-                    break;
+                  break;
             }
         }
 

@@ -33,7 +33,7 @@ public class ReversiClient extends JFrame {
     private JDialog waitingDialog; 
 
     public static void main(String[] args) {
-        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch(Exception e){}
+        // try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch(Exception e){}
         SwingUtilities.invokeLater(() -> new ReversiClient());
     }
 
