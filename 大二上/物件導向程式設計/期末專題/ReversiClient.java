@@ -33,7 +33,6 @@ public class ReversiClient extends JFrame {
     private JDialog waitingDialog; 
 
     public static void main(String[] args) {
-        // try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch(Exception e){}
         SwingUtilities.invokeLater(() -> new ReversiClient());
     }
 
@@ -123,6 +122,7 @@ public class ReversiClient extends JFrame {
                 break;
             case 1:
                 out.println("CREATE_ROOM");
+                break;
             case 2:
                 String roomId = JOptionPane.showInputDialog(this, "請輸入 4 位數房號:");
                 if (roomId != null && roomId.matches("\\d{4}")) {
@@ -130,6 +130,7 @@ public class ReversiClient extends JFrame {
                 } else if (roomId != null) {
                     JOptionPane.showMessageDialog(this, "格式錯誤，請輸入 4 位數字");
                 }
+                break;
         }    
     }
 
@@ -179,6 +180,7 @@ public class ReversiClient extends JFrame {
         JButton exitBtn = new JButton("投降 / 離開");
         
         infoBox.add(new JLabel("--- 對戰資訊 ---"));
+        // infoBox.setFont(new Font("微軟正黑體", Font.PLAIN, 106));
         infoBox.add(statusInfo);
         infoBox.add(scoreInfo);
         infoBox.add(exitBtn);
@@ -186,6 +188,7 @@ public class ReversiClient extends JFrame {
 
         gameChat.setEditable(false);
         sidePanel.add(new JScrollPane(gameChat), BorderLayout.CENTER);
+
 
         JPanel chatInputPanel = new JPanel(new BorderLayout());
         chatInputPanel.add(gameInput, BorderLayout.CENTER);
@@ -216,7 +219,7 @@ public class ReversiClient extends JFrame {
     private void connect() {
         final int MAX_LEN = 10;
         while (true) {
-            myName = JOptionPane.showInputDialog(this, "請輸入你的暱稱:", "登入(Cancel 則退出)", JOptionPane.QUESTION_MESSAGE);
+            myName = JOptionPane.showInputDialog(this, "請輸入你的暱稱:", "登入(Cancel 則退出)", JOptionPane.PLAIN_MESSAGE);
 
             if (myName == null) System.exit(0); // cancel 退出
 
@@ -251,7 +254,7 @@ public class ReversiClient extends JFrame {
         try {
             String line;
             while ((line = in.readLine()) != null) {
-                // System.out.println(line); // test
+                System.out.println(line); // test
 
                 String[] parts = line.split("\\|");
                 String type = parts[0];
@@ -261,11 +264,15 @@ public class ReversiClient extends JFrame {
                         case "LOBBY_CHAT":
                             lobbyChat.append(parts[1] + ": " + parts[2] + "\n");
                             break;
+                        case "LOBBY_ANNOUNCEMENT":
+                            lobbyChat.append("[" + parts[1] + "] " + parts[2] + "\n");
+                            break;
                         case "ROOM_CREATED": 
                             showWaitingDialog(parts[1]);
                             break;
                         case "ERROR":
                             JOptionPane.showMessageDialog(this, parts[1]);
+                            System.exit(0);
                             break;
                         case "START":
                             if(waitingDialog != null) waitingDialog.dispose(); 
