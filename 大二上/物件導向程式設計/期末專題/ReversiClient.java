@@ -254,7 +254,7 @@ public class ReversiClient extends JFrame {
         try {
             String line;
             while ((line = in.readLine()) != null) {
-                System.out.println(line); // test
+                // System.out.println(line); // Debug
 
                 String[] parts = line.split("\\|");
                 String type = parts[0];
@@ -272,7 +272,6 @@ public class ReversiClient extends JFrame {
                             break;
                         case "ERROR":
                             JOptionPane.showMessageDialog(this, parts[1]);
-                            System.exit(0);
                             break;
                         case "START":
                             if(waitingDialog != null) waitingDialog.dispose(); 
