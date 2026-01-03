@@ -138,14 +138,12 @@ public class ReversiClient extends JFrame {
             for (int j = 0; j < 8; j++) {
                 JButton btn = new JButton();
                 
-                // --- 按鈕外觀設定 ---
                 btn.setBackground(new Color(210, 180, 140)); // 淺棕色 (Tan)
                 btn.setOpaque(true);
-                // 不畫按鈕的邊框，改由 GridLayout 的間距來呈現格線
+
                 btn.setBorderPainted(false); 
                 // 關鍵：取消對焦狀態，避免出現藍色/白色框框
                 btn.setFocusable(false); 
-                // ----------------
                 
                 final int r = i;
                 final int c = j;
@@ -205,8 +203,14 @@ public class ReversiClient extends JFrame {
     }
 
     private void connect() {
-        myName = JOptionPane.showInputDialog(this, "請輸入你的暱稱:", "登入", JOptionPane.QUESTION_MESSAGE);
-        if (myName == null || myName.trim().isEmpty()) System.exit(0);
+        do{
+            myName = JOptionPane.showInputDialog(this, "請輸入你的暱稱:", "登入", JOptionPane.QUESTION_MESSAGE);
+            if (myName == null || myName.trim().isEmpty()){
+                JOptionPane.showMessageDialog(this, "名稱不能為空");
+            }
+        }while((myName == null || myName.trim().isEmpty()));
+
+        // if (myName == null || myName.trim().isEmpty()) System.exit(0);
 
         try {
             socket = new Socket("localhost", 8888);
@@ -215,6 +219,7 @@ public class ReversiClient extends JFrame {
             out.println("LOGIN|" + myName);
             new Thread(this::listen).start();
         } catch (Exception e) {
+            // System.out.println(e);
             JOptionPane.showMessageDialog(this, "連線失敗");
             System.exit(0);
         }
