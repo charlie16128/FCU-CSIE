@@ -63,11 +63,20 @@ public class ReversiClient extends JFrame {
 
         JPanel bottom = new JPanel(new BorderLayout(10, 0));
         
+        // 輸入區
         JPanel inputPanel = new JPanel(new BorderLayout());
         inputPanel.add(lobbyInput, BorderLayout.CENTER);
+        lobbyInput.setPreferredSize(new Dimension(0, 40));
+        lobbyInput.setFont(new Font("微軟正黑體", Font.PLAIN, 20));
+
+        // 傳送按鈕
         JButton sendBtn = new JButton("聊天發送");
         inputPanel.add(sendBtn, BorderLayout.EAST);
+        sendBtn.setPreferredSize(new Dimension(120,40));
+        sendBtn.setFont(new Font("微軟正黑體", Font.BOLD, 20));
+
         
+        // 開始按鈕
         JButton startBtn = new JButton("開始遊戲");
         startBtn.setFont(new Font("微軟正黑體", Font.BOLD, 24));
         startBtn.setBackground(new Color(255, 140, 0)); 
@@ -108,25 +117,26 @@ public class ReversiClient extends JFrame {
                 options,
                 options[0]);
 
-        if (n == 0) { 
-            out.println("MATCH_RANDOM");
-        } else if (n == 1) { 
-            out.println("CREATE_ROOM");
-        } else if (n == 2) { 
-            String roomId = JOptionPane.showInputDialog(this, "請輸入 4 位數房號:");
-            if (roomId != null && roomId.matches("\\d{4}")) {
-                out.println("JOIN_ROOM|" + roomId);
-            } else if (roomId != null) {
-                JOptionPane.showMessageDialog(this, "格式錯誤，請輸入 4 位數字");
-            }
-        }
+        switch(n){
+            case 0:
+                out.println("MATCH_RANDOM");
+                break;
+            case 1:
+                out.println("CREATE_ROOM");
+            case 2:
+                String roomId = JOptionPane.showInputDialog(this, "請輸入 4 位數房號:");
+                if (roomId != null && roomId.matches("\\d{4}")) {
+                    out.println("JOIN_ROOM|" + roomId);
+                } else if (roomId != null) {
+                    JOptionPane.showMessageDialog(this, "格式錯誤，請輸入 4 位數字");
+                }
+        }    
     }
 
     private void initGame() {
         JPanel game = new JPanel(new BorderLayout(5, 5));
         
-        // --- 修正處：使用間距 (Gap) 來製造格線 ---
-        // 8x8 格子，水平間距 2，垂直間距 2
+        // 8x8，水平間距 2，垂直間距 2
         JPanel boardPanel = new JPanel(new GridLayout(8, 8, 2, 2));
         // 底板設為黑色，這樣間距就會顯示出黑色線條
         boardPanel.setBackground(Color.BLACK);
@@ -134,15 +144,16 @@ public class ReversiClient extends JFrame {
         boardPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
         boardPanel.setPreferredSize(new Dimension(640, 640));
 
+        // 設定每一個按鈕
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 JButton btn = new JButton();
                 
-                btn.setBackground(new Color(210, 180, 140)); // 淺棕色 (Tan)
+                btn.setBackground(new Color(210, 180, 140)); // 淺棕色 
                 btn.setOpaque(true);
 
                 btn.setBorderPainted(false); 
-                // 關鍵：取消對焦狀態，避免出現藍色/白色框框
+                
                 btn.setFocusable(false); 
                 
                 final int r = i;
@@ -185,7 +196,7 @@ public class ReversiClient extends JFrame {
         game.add(sidePanel, BorderLayout.EAST);
 
         exitBtn.addActionListener(e -> {
-            if(JOptionPane.showConfirmDialog(this, "確定要離開遊戲嗎？(將視為投降)") == JOptionPane.YES_OPTION) {
+            if(JOptionPane.showConfirmDialog(this, "確定要離開遊戲嗎？(將視為投降)", "離開確認", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                 out.println("EXIT");
             }
         });
@@ -203,14 +214,25 @@ public class ReversiClient extends JFrame {
     }
 
     private void connect() {
-        do{
-            myName = JOptionPane.showInputDialog(this, "請輸入你的暱稱:", "登入", JOptionPane.QUESTION_MESSAGE);
-            if (myName == null || myName.trim().isEmpty()){
-                JOptionPane.showMessageDialog(this, "名稱不能為空");
-            }
-        }while((myName == null || myName.trim().isEmpty()));
+        final int MAX_LEN = 10;
+        while (true) {
+            myName = JOptionPane.showInputDialog(this, "請輸入你的暱稱:", "登入(Cancel 則退出)", JOptionPane.QUESTION_MESSAGE);
 
-        // if (myName == null || myName.trim().isEmpty()) System.exit(0);
+            if (myName == null) System.exit(0); // cancel 退出
+
+            myName = myName.trim();
+            if(myName.isEmpty()){
+                JOptionPane.showMessageDialog(this, "名稱不能為空");
+                continue;
+            } 
+
+            if(myName.length() > MAX_LEN){
+                JOptionPane.showMessageDialog(this, "長度需介於 1 ~ " + MAX_LEN + "之間");
+                continue;
+            } 
+
+            break; // 通過條件,退出while
+        }
 
         try {
             socket = new Socket("localhost", 8888);
@@ -229,6 +251,8 @@ public class ReversiClient extends JFrame {
         try {
             String line;
             while ((line = in.readLine()) != null) {
+                // System.out.println(line); // test
+
                 String[] parts = line.split("\\|");
                 String type = parts[0];
                 
