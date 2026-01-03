@@ -24,7 +24,7 @@ public class ReversiServer {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-    // 廣播給大廳 (不在遊戲中的人)
+    // 大廳廣播
     public static void broadcastLobby(String msg) {
         synchronized (allClients) {
             for (ClientHandler c : allClients) {
@@ -33,7 +33,6 @@ public class ReversiServer {
         }
     }
 
-    // --- ClientHandler ---
     static class ClientHandler implements Runnable {
         private Socket socket;
         private PrintWriter out;
@@ -66,7 +65,7 @@ public class ReversiServer {
             switch (type) {
                 case "LOGIN":
                     this.name = parts[1];
-                    broadcastLobby("LOBBY_CHAT|系統|歡迎 " + name + " 加入大廳");
+                    broadcastLobby("LOBBY_CHAT|[系統]|歡迎 " + name + " 加入大廳");
                     break;
                 case "CHAT":
                     if (isInGame && currentRoom != null) currentRoom.broadcast("GAME_CHAT|" + name + "|" + parts[1]);
@@ -93,13 +92,14 @@ public class ReversiServer {
 
         private void processRandomMatch() {
             if (isInGame) return;
-            send("LOBBY_CHAT|系統|正在尋找隨機對手...");
+            send("LOBBY_CHAT|[系統]|正在尋找隨機對手...");
             synchronized (randomQueue) {
                 if (randomQueue.contains(this)) return;
                 if (!randomQueue.isEmpty()) {
                     ClientHandler opponent = randomQueue.poll();
                     GameRoom room = new GameRoom(this); 
                     room.join(opponent); 
+                    System.out.println(name + " 和 " + opponent.name + "開始對戰了"); // 印出對戰資訊
                 } else {
                     randomQueue.add(this);
                 }
@@ -119,7 +119,7 @@ public class ReversiServer {
             this.currentRoom = room;
             this.isInGame = true; 
             send("ROOM_CREATED|" + roomId); 
-            send("LOBBY_CHAT|系統|房間 " + roomId + " 已創建，等待對手加入...");
+            send("LOBBY_CHAT|[系統]|房間 " + roomId + " 已創建，等待對手加入...");
         }
 
         private void joinPrivateRoom(String roomId) {
@@ -146,7 +146,6 @@ public class ReversiServer {
         }
     }
 
-    // --- GameRoom ---
     static class GameRoom {
         ClientHandler black, white;
         int[][] board = new int[8][8];
@@ -154,12 +153,14 @@ public class ReversiServer {
         String roomId = null; 
         boolean gameStarted = false;
 
+        // 創建房間(有ID)
         public GameRoom(ClientHandler host, String roomId) {
             this.black = host;
             this.roomId = roomId;
             host.currentRoom = this;
         }
 
+        // 創建房間(有ID)
         public GameRoom(ClientHandler p1) {
             this.black = p1;
             p1.currentRoom = this;
@@ -167,12 +168,14 @@ public class ReversiServer {
 
         public boolean isFull() { return black != null && white != null; }
 
+        // 加入this房間
         public void join(ClientHandler p2) {
             this.white = p2;
             p2.currentRoom = this;
             startGame();
         }
 
+        // 開始遊戲
         private void startGame() {
             this.gameStarted = true;
             black.isInGame = true;
