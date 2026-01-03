@@ -29,22 +29,11 @@ public class ReversiServer {
 
     // 大廳廣播
     public static void broadcastLobby(String msg) {
-        // System.out.println(msg); // testing
+        // System.out.println(msg); // Debug
         synchronized (allClients) {
             for (ClientHandler c : allClients) {
-                if (!c.isInGame) c.send(msg);
-            }
-        }
-    }
-
-    public static void broadcastToAll(String msg) {
-        synchronized (allClients) {
-            for (ClientHandler c : allClients) {
-                try {
+                // if (!c.isInGame) // 遊戲中的收不到
                     c.send(msg);
-                } catch (Exception e) {
-                    // 忽略發送失敗的
-                }
             }
         }
     }
@@ -115,7 +104,7 @@ public class ReversiServer {
                     ClientHandler opponent = randomQueue.poll();
                     GameRoom room = new GameRoom(this); 
                     room.join(opponent); 
-                    System.out.println(name + " 和 " + opponent.name + " 開始對戰了"); // 印出對戰資訊
+                    System.out.println(name + " 和 " + opponent.name + " 開始對戰了"); // Debug印出對戰資訊
                 } else {
                     randomQueue.add(this);
                 }
@@ -300,22 +289,26 @@ public class ReversiServer {
             return n;
         }
 
-        // --- 正常結束 ---
+        // 正常結束
         private void endGame() {
             int b = count(1), w = count(2);
             String winner = (b > w) ? "黑棋" : (w > b) ? "白棋" : "平手";
             String winnerName = (b > w) ? black.name : (w > b) ? white.name : "雙方";
             
+            // 通知房間內
             broadcast("GAME_OVER|" + "玩家" + winnerName + "獲勝");
             
             // 廣播戰報
             String report = "戰報: " + black.name + " vs " + white.name + "，由 [" + winnerName + "] 獲勝！(黑:" + b + "/白:" + w + ")";
-            ReversiServer.broadcastLobby("LOBBY_ANNOUNCEMENT|系統" + report);
-
+            ReversiServer.broadcastLobby("LOBBY_ANNOUNCEMENT|系統|" + report);
+            
+            // Debug
+            System.out.println("戰報: " + black.name + " vs " + white.name + "，由 [" + winnerName + "] 獲勝！(黑:" + b + "/白:" + w + ")"); 
+            
             resetPlayers();
         }
 
-        // --- 玩家投降/離開/斷線 ---
+        // 玩家投降/離開/斷線
         public void playerExit(ClientHandler p) {
             if (!gameStarted) { 
                  resetPlayers();
@@ -329,6 +322,9 @@ public class ReversiServer {
 
             // 通知房間內
             broadcast("GAME_OVER|" + loserName + " 已離開，" + winnerName + " 獲勝！");
+            
+            // Debug
+            System.out.println(loserName + " 已離開，" + winnerName + " 獲勝！"); 
 
             // 通知大廳 (系統廣播)
             String report = "戰報: " + loserName + " 投降了，[" + winnerName + "] 不戰而勝！";
