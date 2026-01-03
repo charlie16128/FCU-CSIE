@@ -14,6 +14,7 @@ public class ReversiServer {
 
     public static void main(String[] args) {
         System.out.println(">>> 黑白棋伺服器啟動 (Port: " + PORT + ")");
+        
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (true) {
                 Socket socket = serverSocket.accept();
@@ -21,14 +22,29 @@ public class ReversiServer {
                 allClients.add(client);
                 new Thread(client).start();
             }
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) { 
+            e.printStackTrace(); 
+        }
     }
 
     // 大廳廣播
     public static void broadcastLobby(String msg) {
+        // System.out.println(msg); // testing
         synchronized (allClients) {
             for (ClientHandler c : allClients) {
                 if (!c.isInGame) c.send(msg);
+            }
+        }
+    }
+
+    public static void broadcastToAll(String msg) {
+        synchronized (allClients) {
+            for (ClientHandler c : allClients) {
+                try {
+                    c.send(msg);
+                } catch (Exception e) {
+                    // 忽略發送失敗的
+                }
             }
         }
     }
@@ -65,7 +81,7 @@ public class ReversiServer {
             switch (type) {
                 case "LOGIN":
                     this.name = parts[1];
-                    broadcastLobby("LOBBY_CHAT|[系統]|歡迎 " + name + " 加入大廳");
+                    broadcastLobby("LOBBY_ANNOUNCEMENT|系統|歡迎 " + name + " 加入大廳");
                     break;
                 case "CHAT":
                     if (isInGame && currentRoom != null) currentRoom.broadcast("GAME_CHAT|" + name + "|" + parts[1]);
@@ -92,14 +108,14 @@ public class ReversiServer {
 
         private void processRandomMatch() {
             if (isInGame) return;
-            send("LOBBY_CHAT|[系統]|正在尋找隨機對手...");
+            send("LOBBY_ANNOUNCEMENT|系統|正在尋找隨機對手...");
             synchronized (randomQueue) {
                 if (randomQueue.contains(this)) return;
                 if (!randomQueue.isEmpty()) {
                     ClientHandler opponent = randomQueue.poll();
                     GameRoom room = new GameRoom(this); 
                     room.join(opponent); 
-                    System.out.println(name + " 和 " + opponent.name + "開始對戰了"); // 印出對戰資訊
+                    System.out.println(name + " 和 " + opponent.name + " 開始對戰了"); // 印出對戰資訊
                 } else {
                     randomQueue.add(this);
                 }
@@ -119,7 +135,7 @@ public class ReversiServer {
             this.currentRoom = room;
             this.isInGame = true; 
             send("ROOM_CREATED|" + roomId); 
-            send("LOBBY_CHAT|[系統]|房間 " + roomId + " 已創建，等待對手加入...");
+            send("LOBBY_ANNOUNCEMENT|系統|房間 " + roomId + " 已創建，等待對手加入...");
         }
 
         private void joinPrivateRoom(String roomId) {
@@ -149,7 +165,7 @@ public class ReversiServer {
     static class GameRoom {
         ClientHandler black, white;
         int[][] board = new int[8][8];
-        int currentTurn = 1; 
+        int currentTurn = 1; // 黑棋先下
         String roomId = null; 
         boolean gameStarted = false;
 
@@ -207,18 +223,29 @@ public class ReversiServer {
         }
 
         private void nextTurn() {
+            if (isFullBoard()){
+                sendUpdate();
+                endGame();
+                return;
+            }
+
             int nextColor = (currentTurn == 1) ? 2 : 1;
+
+            // 對手可以下，切換回合
             if (hasValidMove(nextColor)) {
                 currentTurn = nextColor;
-            } else {
-                broadcast("MSG_PASS|" + (nextColor==1?"黑方":"白方"));
-                if (!hasValidMove(currentTurn)) {
-                    endGame();
+                sendUpdate();
+            } else {  // 對手不能下
+                if (!hasValidMove(currentTurn)) {   // 雙方都無子可下
+                    sendUpdate();
+                    endGame(); // 雙方都沒步了 (雖未滿盤但死局)，結束遊戲
                     return;
                 }
+                // 只有對手不能下 pass，currentTurn不改變
+                broadcast("MSG_PASS|" + (nextColor==1?"黑方":"白方"));
+
+                sendUpdate();
             }
-            sendUpdate();
-            if (isFullBoard()) endGame();
         }
 
         private void sendUpdate() {
@@ -279,11 +306,11 @@ public class ReversiServer {
             String winner = (b > w) ? "黑棋" : (w > b) ? "白棋" : "平手";
             String winnerName = (b > w) ? black.name : (w > b) ? white.name : "雙方";
             
-            broadcast("GAME_OVER|" + winner + "獲勝 (" + winnerName + ")");
+            broadcast("GAME_OVER|" + "玩家" + winnerName + "獲勝");
             
             // 廣播戰報
             String report = "戰報: " + black.name + " vs " + white.name + "，由 [" + winnerName + "] 獲勝！(黑:" + b + "/白:" + w + ")";
-            ReversiServer.broadcastLobby("LOBBY_CHAT|系統|" + report);
+            ReversiServer.broadcastLobby("LOBBY_ANNOUNCEMENT|系統" + report);
 
             resetPlayers();
         }
@@ -301,11 +328,11 @@ public class ReversiServer {
             String winnerName = (winner != null) ? winner.name : "對手";
 
             // 通知房間內
-            broadcast("GAME_OVER|" + loserName + " 已投降/離開，" + winnerName + " 獲勝！");
+            broadcast("GAME_OVER|" + loserName + " 已離開，" + winnerName + " 獲勝！");
 
             // 通知大廳 (系統廣播)
             String report = "戰報: " + loserName + " 投降了，[" + winnerName + "] 不戰而勝！";
-            ReversiServer.broadcastLobby("LOBBY_CHAT|系統|" + report);
+            ReversiServer.broadcastLobby("LOBBY_ANNOUNCEMENT|系統|" + report);
 
             resetPlayers();
         }
