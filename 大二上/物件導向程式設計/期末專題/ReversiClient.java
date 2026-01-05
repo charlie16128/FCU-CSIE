@@ -92,12 +92,49 @@ public class ReversiClient extends JFrame {
 
         startBtn.addActionListener(e -> showStartGameMenu());
         
+         // 處理訊息
         ActionListener sendAction = e -> {
-            if(!lobbyInput.getText().trim().isEmpty()){
-                out.println("CHAT|" + lobbyInput.getText());
-                lobbyInput.setText("");
+            String text = lobbyInput.getText().trim();
+            if (text.isEmpty()) return;
+
+            lobbyInput.setText(""); 
+
+            String[] parts = text.split("\\s+");
+            String command = parts[0].toLowerCase(); // 轉小寫，讓 -R 也通用
+
+            switch (command) {
+                // 隨機匹配
+                case "-r":
+                    out.println("MATCH_RANDOM");
+                    lobbyChat.append("[系統] 執行指令：開始隨機匹配\n");
+                    break;
+
+                // 創建房間
+                case "-c":
+                    out.println("CREATE_ROOM");
+                    lobbyChat.append("[系統] 執行指令：創建私人房間\n");
+                    break;
+
+                // 加入房間
+                case "-j":
+                    if (parts.length > 1) {
+                        String roomId = parts[1];
+                        if (isVaildRoomNumber(roomId)) {
+                            out.println("JOIN_ROOM|" + roomId);
+                            lobbyChat.append("[系統] 執行指令：嘗試加入房間 " + roomId + "\n");
+                        } else {
+                            JOptionPane.showMessageDialog(this, "房號格式錯誤 (需為4碼數字)");
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(this, "請輸入房號 (例如: -j 1234)");
+                    }
+                    break;
+                default:
+                    out.println("CHAT|" + text);
+                    break;
             }
         };
+
         sendBtn.addActionListener(sendAction);
         lobbyInput.addActionListener(sendAction);
 
@@ -124,7 +161,7 @@ public class ReversiClient extends JFrame {
                 break;
             case 2:
                 String roomId = JOptionPane.showInputDialog(this, "請輸入 4 位數房號:");
-                if (roomId != null && roomId.matches("\\d{4}")) {
+                if (isVaildRoomNumber(roomId)) {
                     out.println("JOIN_ROOM|" + roomId);
                 } else if (roomId != null) {
                     JOptionPane.showMessageDialog(this, "格式錯誤，請輸入 4 位數字");
@@ -132,19 +169,24 @@ public class ReversiClient extends JFrame {
                 break;
         }    
     }
+    private boolean isVaildRoomNumber(String RoomId){
+        return RoomId != null && RoomId.matches("\\d{4}");
+    }
 
     private void initGame() {
         JPanel game = new JPanel(new BorderLayout(5, 5));
         
         // 8x8，水平間距 2，垂直間距 2
         JPanel boardPanel = new JPanel(new GridLayout(8, 8, 2, 2));
+        
         // 底板設為黑色，這樣間距就會顯示出黑色線條
         boardPanel.setBackground(Color.BLACK);
+
         // 外框也設為黑色
         boardPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
         boardPanel.setPreferredSize(new Dimension(640, 640));
 
-        // 設定每一個按鈕
+        // 按鈕設定
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 JButton btn = new JButton();
@@ -154,12 +196,12 @@ public class ReversiClient extends JFrame {
 
                 btn.setBorderPainted(false); 
                 
-                btn.setFocusable(false); 
+                btn.setFocusable(true); 
                 
                 final int r = i;
                 final int c = j;
                 btn.addActionListener(e -> {
-                    if (myColor == turnColor && isValidMove(r, c, myColor)) {
+                    if (myColor == turnColor && isValidMove(r, c, myColor)) { // 本地先檢查
                         out.println("MOVE|" + r + "|" + c);
                     }
                 });
@@ -173,26 +215,43 @@ public class ReversiClient extends JFrame {
         sidePanel.setPreferredSize(new Dimension(300, 0));
         sidePanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
+        // 設定infobox
+        Font btnFont = new Font("微軟正黑體", Font.BOLD, 16);
         JPanel infoBox = new JPanel(new GridLayout(4, 1));
         statusInfo.setFont(new Font("微軟正黑體", Font.BOLD, 18));
         scoreInfo.setFont(new Font("微軟正黑體", Font.PLAIN, 16));
         JButton exitBtn = new JButton("投降 / 離開");
+        exitBtn.setFont(btnFont);
         
-        infoBox.add(new JLabel("--- 對戰資訊 ---"));
-        // infoBox.setFont(new Font("微軟正黑體", Font.PLAIN, 106));
+        // 遊戲右上角infobox資料設定
+        JLabel infoTitle = new JLabel("--- 對戰資訊 ---");
+        infoTitle.setFont(new Font("微軟正黑體",Font.BOLD, 24));
+        infoBox.add(infoTitle);
         infoBox.add(statusInfo);
         infoBox.add(scoreInfo);
         infoBox.add(exitBtn);
         sidePanel.add(infoBox, BorderLayout.NORTH);
 
+        // 遊戲聊天欄
         gameChat.setEditable(false);
+        gameChat.setFont(new Font("Monospaced", Font.PLAIN, 16));
+
         sidePanel.add(new JScrollPane(gameChat), BorderLayout.CENTER);
 
-
         JPanel chatInputPanel = new JPanel(new BorderLayout());
+
+        // 設定輸入框
+        Font bigFont = new Font("微軟正黑體", Font.PLAIN, 20);
+        gameInput.setFont(bigFont);
+        gameInput.setPreferredSize(new Dimension(0, 40)); // 設定高度
         chatInputPanel.add(gameInput, BorderLayout.CENTER);
+
+        // 設定送出按鈕
         JButton gameSendBtn = new JButton("送出");
+        
+        gameSendBtn.setFont(btnFont); 
         chatInputPanel.add(gameSendBtn, BorderLayout.EAST);
+
         sidePanel.add(chatInputPanel, BorderLayout.SOUTH);
 
         game.add(sidePanel, BorderLayout.EAST);
@@ -218,7 +277,7 @@ public class ReversiClient extends JFrame {
     private void connect() {
         final int MAX_LEN = 10;
         while (true) {
-            myName = JOptionPane.showInputDialog(this, "請輸入你的暱稱:", "登入(Cancel 則退出)", JOptionPane.PLAIN_MESSAGE);
+            myName = JOptionPane.showInputDialog(this, "請輸入你的暱稱:", "登入 (Cancel 退出)", JOptionPane.QUESTION_MESSAGE);
 
             if (myName == null) System.exit(0); // cancel 退出
 
@@ -244,7 +303,7 @@ public class ReversiClient extends JFrame {
             new Thread(this::listen).start();
         } catch (Exception e) {
             // System.out.println(e);
-            JOptionPane.showMessageDialog(this, "連線失敗");
+            JOptionPane.showMessageDialog(this, "與伺服器連接失敗，請稍後再嘗試...", "連線失敗", JOptionPane.ERROR_MESSAGE);
             System.exit(0);
         }
     }
@@ -261,11 +320,11 @@ public class ReversiClient extends JFrame {
                 SwingUtilities.invokeLater(() -> {
                     switch (type) {
                         case "LOBBY_CHAT":
-                            lobbyChat.append(parts[1] + ": " + parts[2] + "\n");
+                            lobbyChat.append(parts[1] + " : " + parts[2] + "\n");
                             //lobbyChat.setCarePosition(lobbyChat.getDocument().getLength());
                             break;
                         case "LOBBY_ANNOUNCEMENT":
-                            lobbyChat.append("[" + parts[1] + "] " + parts[2] + "\n");
+                            lobbyChat.append("【" + parts[1] + "】 " + parts[2] + "\n");
                             break;
                         case "ROOM_CREATED": 
                             showWaitingDialog(parts[1]);
@@ -277,7 +336,7 @@ public class ReversiClient extends JFrame {
                             if(waitingDialog != null) waitingDialog.dispose(); 
                             myColor = parts[1].equals("BLACK") ? 1 : 2;
                             statusInfo.setText("你是: " + (myColor==1?"黑棋":"白棋"));
-                            gameChat.setText("系統: 遊戲開始！\n");
+                            gameChat.setText("【系統】 遊戲開始！\n");
                             cardLayout.show(mainPanel, "GAME");
                             break;
                         case "UPDATE": 
@@ -290,7 +349,7 @@ public class ReversiClient extends JFrame {
                                 statusInfo.setForeground(Color.RED);
                             } else {
                                 //statusInfo.setText("對手思考中...");
-                                statusInfo.setText("對手" + (turnColor == 1 ? "黑" : "白") +"思考中..." + "你是" + (myColor==1?"黑":"白"));
+                                statusInfo.setText("對手(" + (turnColor == 1 ? "黑" : "白") +")思考中..." + "你是(" + (myColor==1?"黑":"白") + ")");
                                 statusInfo.setForeground(Color.BLACK);
                             }
                             break;
@@ -311,7 +370,11 @@ public class ReversiClient extends JFrame {
                     }
                 });
             }
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) { 
+            e.printStackTrace(); 
+            JOptionPane.showMessageDialog(this,"伺服器已經斷線，正在關閉程式...", "Connection Reset", JOptionPane.ERROR_MESSAGE);
+            System.exit(0);
+        }
     }
 
     private void showWaitingDialog(String roomId) {
@@ -346,7 +409,7 @@ public class ReversiClient extends JFrame {
                     btn.setIcon(new PieceIcon(Color.WHITE));
                 } else {
                     if (myColor == turnColor && isValidMove(i, j, myColor)) {
-                        btn.setIcon(new HintIcon());
+                        btn.setIcon(new HintIcon()); // 符合下的條件，顯示提示
                     } else {
                         btn.setIcon(null);
                     }
@@ -401,7 +464,7 @@ public class ReversiClient extends JFrame {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(new Color(0, 0, 0, 50));
-            g2.fillOval(x+20, y+20, 10, 10);
+            g2.fillOval(x+15, y+15, 20, 20);
         }
     }
 }

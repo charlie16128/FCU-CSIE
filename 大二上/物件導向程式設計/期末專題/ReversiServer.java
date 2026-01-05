@@ -58,6 +58,8 @@ public class ReversiServer {
                 }
             } catch (IOException e) {
                 System.out.println(name + " 斷線");
+                 // 下線會廣播
+                broadcastLobby("LOBBY_ANNOUNCEMENT|系統|玩家 : " + name + " 已離線");
             } finally {
                 cleanup();
             }
@@ -113,6 +115,9 @@ public class ReversiServer {
 
         private void createPrivateRoom() {
             if (isInGame) return;
+            synchronized (randomQueue) { // 從 randomQueue 中移除
+                randomQueue.remove(this);
+            }
             String roomId;
             do {
                 roomId = String.format("%04d", new Random().nextInt(10000));
@@ -129,6 +134,9 @@ public class ReversiServer {
 
         private void joinPrivateRoom(String roomId) {
             if (isInGame) return;
+            synchronized (randomQueue) { // 從 randomQueue 中移除
+                randomQueue.remove(this);
+            }
             GameRoom room = roomMap.get(roomId);
             if (room != null && !room.isFull()) {
                 room.join(this);
@@ -227,7 +235,7 @@ public class ReversiServer {
             } else {  // 對手不能下
                 if (!hasValidMove(currentTurn)) {   // 雙方都無子可下
                     sendUpdate();
-                    endGame(); // 雙方都沒步了 (雖未滿盤但死局)，結束遊戲
+                    endGame();
                     return;
                 }
                 // 只有對手不能下 pass，currentTurn不改變
@@ -244,7 +252,7 @@ public class ReversiServer {
         }
 
         private boolean isValidMove(int r, int c, int color, boolean execute) {
-            if (board[r][c] != 0) return false;
+            if (board[r][c] != 0) return false; // 該格已經有棋子
             int opponent = (color == 1) ? 2 : 1;
             boolean valid = false;
             int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1},{-1,-1},{-1,1},{1,-1},{1,1}};
@@ -252,7 +260,7 @@ public class ReversiServer {
             for (int[] d : dirs) {
                 int i = r + d[0], j = c + d[1];
                 boolean sawOpponent = false;
-                while (i >= 0 && i < 8 && j >= 0 && j < 8) {
+                while (i >= 0 && i < 8 && j >= 0 && j < 8) { // 在棋盤內
                     if (board[i][j] == opponent) sawOpponent = true;
                     else if (board[i][j] == color) {
                         if (sawOpponent) {
@@ -299,11 +307,11 @@ public class ReversiServer {
             broadcast("GAME_OVER|" + "玩家" + winnerName + "獲勝");
             
             // 廣播戰報
-            String report = "戰報: " + black.name + " vs " + white.name + "，由 [" + winnerName + "] 獲勝！(黑:" + b + "/白:" + w + ")";
+            String report = "{戰報} " + black.name + " vs " + white.name + "，由 [" + winnerName + "] 獲勝！(黑:" + b + "/白:" + w + ")";
             ReversiServer.broadcastLobby("LOBBY_ANNOUNCEMENT|系統|" + report);
             
-            // Debug
-            System.out.println("戰報: " + black.name + " vs " + white.name + "，由 [" + winnerName + "] 獲勝！(黑:" + b + "/白:" + w + ")"); 
+            // Debug(print in console)
+            System.out.println("{戰報} " + black.name + " vs " + white.name + "，由 [" + winnerName + "] 獲勝！(黑:" + b + "/白:" + w + ")"); 
             
             resetPlayers();
         }
@@ -323,11 +331,11 @@ public class ReversiServer {
             // 通知房間內
             broadcast("GAME_OVER|" + loserName + " 已離開，" + winnerName + " 獲勝！");
             
-            // Debug
+            // Debug(print in console)
             System.out.println(loserName + " 已離開，" + winnerName + " 獲勝！"); 
 
             // 通知大廳 (系統廣播)
-            String report = "戰報: " + loserName + " 投降了，[" + winnerName + "] 不戰而勝！";
+            String report = "{戰報} 玩家 " + loserName + " 投降了，[" + winnerName + "] 直接贏了!!!";
             ReversiServer.broadcastLobby("LOBBY_ANNOUNCEMENT|系統|" + report);
 
             resetPlayers();
