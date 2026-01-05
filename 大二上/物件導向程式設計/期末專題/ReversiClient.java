@@ -289,7 +289,8 @@ public class ReversiClient extends JFrame {
                                 statusInfo.setText("輪到你了！(" + (myColor==1?"黑":"白") + ")");
                                 statusInfo.setForeground(Color.RED);
                             } else {
-                                statusInfo.setText("對手思考中...");
+                                //statusInfo.setText("對手思考中...");
+                                statusInfo.setText("對手" + (turnColor == 1 ? "黑" : "白") +"思考中..." + "你是" + (myColor==1?"黑":"白"));
                                 statusInfo.setForeground(Color.BLACK);
                             }
                             break;
