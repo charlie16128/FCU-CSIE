@@ -37,7 +37,7 @@ public class ReversiClient extends JFrame {
     }
 
     public ReversiClient() {
-        setTitle("黑白棋大戰 (Java版)");
+        setTitle("黑白棋大戰");
         setSize(1000, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
@@ -73,7 +73,6 @@ public class ReversiClient extends JFrame {
         inputPanel.add(sendBtn, BorderLayout.EAST);
         sendBtn.setPreferredSize(new Dimension(120,40));
         sendBtn.setFont(new Font("微軟正黑體", Font.BOLD, 20));
-
         
         // 開始按鈕
         JButton startBtn = new JButton("開始遊戲");
@@ -263,6 +262,7 @@ public class ReversiClient extends JFrame {
                     switch (type) {
                         case "LOBBY_CHAT":
                             lobbyChat.append(parts[1] + ": " + parts[2] + "\n");
+                            //lobbyChat.setCarePosition(lobbyChat.getDocument().getLength());
                             break;
                         case "LOBBY_ANNOUNCEMENT":
                             lobbyChat.append("[" + parts[1] + "] " + parts[2] + "\n");
