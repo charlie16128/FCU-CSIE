@@ -7,9 +7,9 @@ int main(){
 
     while(tc--){
         int r;
-        vector<int> s(r);
-
         cin >> r;
+        
+        vector<int> s(r);
         for(auto &x : s){
             cin >> x;
         }
@@ -18,8 +18,12 @@ int main(){
 
         int mid = s[r / 2];
 
-        
-    }
+        long long res = 0;
+        for(int x : s){
+            res += abs(mid - x);
+        }
 
+        cout << res << "\n";
+    }
     return 0;
 }
