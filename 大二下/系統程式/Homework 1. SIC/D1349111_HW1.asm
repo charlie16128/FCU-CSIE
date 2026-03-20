@@ -1,4 +1,4 @@
-MULT9   START   0       ; 程式開始，起始位址為 0
+HW1     START   0       ; 程式開始，起始位址為 0
 MAIN    LDA     #0      ; 將暫存器 A 設為 0 (準備初始化列索引)
         STA     ROW     ; 將 0 存入 ROW 變數
 ROWLOOP LDA     ROW     ; 載入目前列數
@@ -24,6 +24,7 @@ COLLOOP LDA     COL     ; 載入目前欄數
         LDA     ROW     ; 載入列數
         MUL     COL     ; 計算 A = ROW * COL
         J       DOPRINT ; 跳轉至列印邏輯
+
 IHDRCOL LDA     COL     ; 標頭列的值即為 COL
 DOPRINT JSUB    PRINTA  ; 呼叫 PRINTA 副程式印出對齊的數字
         LDA     COL     ; 載入目前欄數
@@ -38,6 +39,7 @@ ROWEND  LDA     NEWLINE ; 載入換行字元
         ADD     #1      ; 列數加 1
         STA     ROW     ; 存回 ROW
         J       ROWLOOP ; 回到外迴圈開頭
+        
 DONE    J       DONE    ; 程式結束，無窮迴圈停駐
 
 PRINTA  STA     VALA    ; [副程式] 儲存要印的數值
@@ -90,3 +92,100 @@ NEWLINE WORD    10      ; 換行符 (LF) 的 ASCII 碼
 TEN     WORD    10      ; 常數 10 (用於除法計算)
 OUTDEV  BYTE    X'F2'   ; 指定輸出裝置為 F2
         END     MAIN    ; 程式結束
+
+
+
+
+HW1     START   0
+MAIN    LDA     #0
+        STA     ROW
+ROWLOOP LDA     ROW
+        COMP    #10
+        JEQ     DONE
+        LDA     ROW
+        COMP    #0
+        JEQ     HDRROW
+        LDA     ROW
+        ADD     ZERO
+        JSUB    PCHAR
+        J       COLINIT
+HDRROW  LDA     SPACE
+        JSUB    PCHAR
+COLINIT LDA     #1
+        STA     COL
+COLLOOP LDA     COL
+        COMP    #10
+        JEQ     ROWEND
+        LDA     ROW
+        COMP    #0
+        JEQ     IHDRCOL
+        LDA     ROW
+        MUL     COL
+        J       DOPRINT
+IHDRCOL LDA     COL
+DOPRINT JSUB    PRINTA
+        LDA     COL
+        ADD     #1
+        STA     COL
+        J       COLLOOP
+ROWEND  LDA     NEWLINE
+        JSUB    PCHAR
+        LDA     NEWLINE
+        JSUB    PCHAR
+        LDA     ROW
+        ADD     #1
+        STA     ROW
+        J       ROWLOOP
+        
+DONE    J       DONE
+
+PRINTA  STA     VALA
+        STL     RETPRA
+        LDA     VALA
+        DIV     TEN
+        STA     TENS
+        MUL     TEN
+        STA     TEMP
+        LDA     VALA
+        SUB     TEMP
+        STA     UNITS
+        LDA     SPACE
+        JSUB    PCHAR
+        LDA     SPACE
+        JSUB    PCHAR
+        LDA     TENS
+        COMP    #0
+        JEQ     NOTENS
+        ADD     ZERO
+        JSUB    PCHAR
+        J       PRUNITS
+NOTENS  LDA     SPACE
+        JSUB    PCHAR
+PRUNITS LDA     UNITS
+        ADD     ZERO
+        JSUB    PCHAR
+        LDL     RETPRA
+        LDA     VALA
+        RSUB
+
+PCHAR   STA     CHAR
+PCHLP   TD      OUTDEV
+        JEQ     PCHLP
+        LDA     CHAR
+        WD      OUTDEV
+        RSUB
+
+ROW     RESW    1
+COL     RESW    1
+VALA    RESW    1
+RETPRA  RESW    1
+TENS    RESW    1
+UNITS   RESW    1
+TEMP    RESW    1
+CHAR    RESW    1
+ZERO    WORD    48
+SPACE   WORD    32
+NEWLINE WORD    10
+TEN     WORD    10
+OUTDEV  BYTE    X'F2'
+        END     MAIN
