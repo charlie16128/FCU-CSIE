@@ -4,9 +4,9 @@ using namespace std;
 int main()
 {
     string s;
-    
+
     while(cin >> s){   
-        int k  =0, sum = 0, max = 1,N;
+        int k = 0, sum = 0, max = 1, N;
         for(int i = 0; i < s.length();i++){
             if('0' <= s[i] && s[i] <= '9') {
                 k = s[i] - '0';
@@ -19,8 +19,7 @@ int main()
             }
             
             sum += k;
-            if(k > max)
-                max = k;
+            if(k > max) max = k;
         }
         
         for(N = max + 1; N <= 62; N++){
@@ -30,7 +29,7 @@ int main()
         if(N <= 62) 
             cout << N << endl;
         else 
-            cout<<"such number is impossible!"<<endl;
+            cout << "such number is impossible!" << endl;
     }
     return 0;
 }
