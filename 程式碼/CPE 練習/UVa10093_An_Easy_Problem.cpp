@@ -21,7 +21,7 @@ int main()
             
             sum += k;
             if(k > max)
-                max=k;
+                max = k;
         }
         
         for(N = max + 1; N <= 62; N++)
