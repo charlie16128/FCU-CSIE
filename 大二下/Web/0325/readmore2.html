@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Read More Component</title>
+</head>
+
+<body>
+    <label for="limitInput">顯示字數限制：</label>
+    <input type="number" id="limitInput" value="50" min="1">
+    <br><br>
+    <read-more
+        text="這是一段很長的文字，用來測試 read-more component 的功能。當文字超過設定字數時，會顯示前N個字符加上省略號，點擊 read-more 按鈕可以展開完整文字，再次點擊可以收起。"></read-more>
+
+    <script>
+        class ReadMore extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+                this.isExpanded = false;
+                this.limit = parseInt(this.getAttribute('limit')) || 50;
+                this.fullText = this.getAttribute('text');
+                this.updateTruncatedText();
+                this.render();
+            }
+
+            static get observedAttributes() {
+                return ['text', 'limit'];
+            }
+
+            attributeChangedCallback(name, oldVal, newVal) {
+                if (name === 'limit') {
+                    this.limit = parseInt(newVal) || 50;
+                } else if (name === 'text') {
+                    this.fullText = newVal;
+                }
+                this.updateTruncatedText();
+                this.render();
+            }
+
+            updateTruncatedText() {
+                this.truncatedText = this.fullText.length > this.limit ? this.fullText.substring(0, this.limit) + '……' : this.fullText;
+            }
+
+            toggleText() {
+                this.isExpanded = !this.isExpanded;
+                this.render();
+            }
+
+            render() {
+                this.shadowRoot.innerHTML = `
+                    <style>
+                        .text {
+                            display: inline;
+                        }
+                        .button {
+                            color: blue;
+                            cursor: pointer;
+                            text-decoration: underline;
+                        }
+                    </style>
+                    <span class="text" aria-live="polite">${this.isExpanded ? this.fullText : this.truncatedText}</span>
+                    <span class="button" onclick="this.getRootNode().host.toggleText()" role="button" aria-expanded="${this.isExpanded}">
+                        ${this.isExpanded ? 'read-less' : 'read-more'}
+                    </span>
+                `;
+            }
+        }
+
+        customElements.define('read-more', ReadMore);
+
+        // 添加輸入框事件監聽器
+        const input = document.getElementById('limitInput');
+        input.addEventListener('input', () => {
+            const limit = parseInt(input.value) || 50;
+            document.querySelectorAll('read-more').forEach(el => el.setAttribute('limit', limit));
+        });
+    </script>
+</body>
+
+</html>

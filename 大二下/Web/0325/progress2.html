@@ -1,0 +1,48 @@
+<html>
+
+<body>
+    <label for="myProgress">Downloading progress:</label>
+
+    <progress id="file" value="0" max="100"> 0% </progress>
+
+    <button id="load">Click Me</button>
+
+    <script>
+        let progress = 0;
+
+        function move() {
+            // 如果變數 progress 等於0，表示進度條尚未啟動
+            if (progress === 0) {
+                // 設置變數i為1，表示進度條已經啟動
+                progress = 1;
+                // 獲取id為"file"的元素，即進度條
+                const elem = document.getElementById("file");
+                // 初始寬度為1
+                let width = 1;
+                // 設置一個計時器，每10毫秒調用一次frame()函數
+                const id = setInterval(frame, 10);
+
+                // 建立名為frame的函數
+                function frame() {
+                    // 如果寬度達到100%以上，清除計時器
+                    if (width >= 100) {
+                        // 清除之前的計時器 id
+                        clearInterval(id);
+                        // 設置變數 progress 為0，表示進度條已經停止
+                        progress = 0;
+                    } else {
+                        // 寬度增加1
+                        width++;
+                        // 設置進度條的值 value 為 width
+                        elem.value = width;
+                        // 設置進度條的顯示文字為 width + %
+                        elem.innerHTML = width + "%";
+                    }
+                }
+            }
+        }
+        document.getElementById("load").addEventListener("click", move);
+    </script>
+</body>
+
+</html>

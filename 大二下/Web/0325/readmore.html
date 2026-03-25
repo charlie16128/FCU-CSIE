@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <style>
+            #more{
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <p>
+            謹代本所當事人張家寧女士聲明如下：「
+        
+            一、YouTube頻道『眾量級CROWD』（下稱『眾量級頻道』）為本人與王崇睿先生（Andy老師）於2016年共同創立，因頻道業務與日俱增，為了專注於內容創作，二人於2018年時與曾淑惠女士共同成立『群海娛樂股份有限公司』（下稱『群海公司』），並委由曾女士擔任董事長，負責頻道<span
+                id="dots">......</span><span id="more">相關之商業營運與財務管理，本人及 Andy 老師則分別擔任公司董事。自群海公司成立以來，本人與Andy老師皆僅按月領取相同薪資及獎金。
+        
+                二、本人與Andy老師多年來雖共同擔任群海公司董事，惟並未實際參與公司營運，對於公司之實際收益狀況，皆不甚知悉。本人曾數度請求群海公司提供財務資料，惟皆未獲妥適回應。眾量級頻道為本人與Andy老師共同創立，頻道上傳之影片皆為二人心血結晶，故對於Andy老師表示未獲得應有之報酬，本人完全理解，且贊同相關收益應公平分配，使二人的付出皆能獲得應有保障。本人現既為群海公司股東及監察人，亦將就財務資料不明一事，與律師研擬後續對策。
+        
+                三、由於本事件涉及家人及前伴侶間之爭議，事發以來本人內心深感煎熬，未及於第一時間出面回應。惟本人身為公眾人物，有義務回應外界相關質疑，本人亦將儘速針對本事件拍攝影片親自對外說明，絕不逃避。
+        
+                四、對於本事件造成社會紛擾，本人深表歉意，對於各界批評與指教，本人亦虛心接受。又本人去年創立之『秘月期POPOO』YouTube頻道，未來將以個人名義成立公司或工作室，相關之業務經營及收益，皆與群海公司無涉，謹併予說明。」
+        
+                謹代聲明如上。
+        
+                理鴻法律事務所
+                郭柏鴻律師
+                李牧宸律師</span>
+        </p>
+        
+        <button id="myBtn">Read more</button>
+    </body>
+
+    
+    <script>
+        const dots = document.getElementById("dots");
+        const moreText = document.getElementById("more");
+        const btnText = document.getElementById("myBtn");
+
+        btnText.addEventListener("click", function() {
+            if (moreText.style.display === "none") {
+                dots.style.display = "none";
+                moreText.style.display = "inline";
+                btnText.textContent = "read less";
+            } else {
+                dots.style.display = "inline";
+                moreText.style.display = "none";
+                btnText.textContent = "Read more";
+            }
+        });
+    </script>
+</html>

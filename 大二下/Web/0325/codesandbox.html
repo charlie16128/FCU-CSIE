@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Wired-Elements sample</title>
+    <link
+      href="https://fonts.googleapis.com/css?family=Gloria+Hallelujah&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+
+  <body>
+    <main>
+      <wired-card elevation="2">
+        <h1>wired-elements demo</h1>
+      </wired-card>
+      <section>
+        <wired-input placeholder="your name"></wired-input>
+        <wired-button elevation="2">Submit</wired-button>
+      </section>
+    </main>
+  </body>
+
+  <script type="module" src="https://unpkg.com/wired-elements?module"></script>
+  <script type="module">
+    const name = document.querySelector("wired-input");
+    const button = document.querySelector("wired-button");
+    button.addEventListener("click", () => {
+      window.alert(`Hello ${name.value.trim()}!`);
+    });
+  </script>
+</html>
