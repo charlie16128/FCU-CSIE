@@ -16,7 +16,7 @@ git push
 
 基本設定與環境
 git config --global user.name "charlie16128"
-git config --global user.email "ctugm24@gmail.com"
+git config --global user.email "@gmail.com"
 git config --global core.editor "code --wait"       # 編輯 commit message 時使用的編輯器
 git config --global core.autocrlf true              # Windows: CRLF/LF 自動轉換
 git config --global credential.helper manager       # Windows credential helper
