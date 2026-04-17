@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 def onChange(x):
-    pass
+    return
 
 cv2.namedWindow('edge_tool_demo')
 
