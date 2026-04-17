@@ -12,7 +12,7 @@ h, w = img.shape
 index = np.zeros((h // 4, w // 4), dtype=np.uint8)
 decompressed_img = np.zeros((h, w), dtype=np.uint8)
 
-print("開始壓縮影像...")
+# 壓縮
 for i in range(0, h, 4):
     for j in range(0, w, 4):
         block = img[i:i+4, j:j+4].flatten()
@@ -23,7 +23,7 @@ for i in range(0, h, 4):
         
         index[i//4, j//4] = best_index
 
-print("開始解壓縮影像...")
+# 解壓縮
 for i in range(h // 4):
     for j in range(w // 4):
         idx = index[i, j]
