@@ -85,9 +85,7 @@ while True:
     cv2.putText(canvas, "Q: Quit", (650, 500), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
 
     if success:
-        overlay = canvas.copy()
-        cv2.putText(overlay, "SUCCESS!", (50, 350), cv2.FONT_HERSHEY_TRIPLEX, 3, (0, 0, 255), 10)
-        cv2.addWeighted(overlay, 0.7, canvas, 0.3, 0, canvas)
+        cv2.putText(canvas, "SUCCESS!", (50, 350), cv2.FONT_HERSHEY_TRIPLEX, 3, (0, 0, 255), 10)
 
     cv2.imshow("11402_3_D1349111", canvas)
 
