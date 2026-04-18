@@ -3,7 +3,7 @@ import numpy as np
 
 drawing = False 
 mode = 6        
-ix, iy = -1, -1 
+mouse_x, mouse_y = -1, -1 
 Window_Size = 1000
 history = []   
 redo_stack = []
@@ -19,45 +19,46 @@ def CanvasInit():
 def save():
     global history, redo_stack
     history.append(canvas.copy())
-    if len(history) > 100: 
+    if len(history) > 1000: 
         history.pop(0)
     redo_stack.clear() 
 
 def draw(event, x, y, flags, param):
-    global ix, iy, drawing, canvas, mode
+    global mouse_x, mouse_y, drawing, canvas, mode
 
     r = cv2.getTrackbarPos('Red', window_name)
     g = cv2.getTrackbarPos('Green', window_name)
     b = cv2.getTrackbarPos('Blue', window_name)
-    r = cv2.getTrackbarPos('Radius', window_name)
+    rad = cv2.getTrackbarPos('Radius', window_name)
     thick = cv2.getTrackbarPos('Thickness', window_name)
     color = (b, g, r)
 
     if event == cv2.EVENT_LBUTTONDOWN:
         save()
         drawing = True
-        ix, iy = x, y
+        mouse_x, mouse_y = x, y
         
         if mode == 1: 
-            cv2.circle(canvas, (x, y), r, color, thick)
+            cv2.circle(canvas, (x, y), rad, color, thick)
         elif mode == 2: 
-            cv2.circle(canvas, (x, y), r, color, -1)
+            cv2.circle(canvas, (x, y), rad, color, -1)
         elif mode == 3: 
-            cv2.rectangle(canvas, (x-r, y-r), (x+r, y+r), color, -1)
+            cv2.rectangle(canvas, (x-rad, y-rad), (x+rad, y+rad), color, -1)
 
     elif event == cv2.EVENT_MOUSEMOVE:
         if drawing:
             if mode == 4:
-                cv2.circle(canvas, (x, y), r, (255, 255, 255), -1)
+                cv2.circle(canvas, (x, y), rad, (255, 255, 255), -1)
             elif mode == 6: 
-                cv2.line(canvas, (ix, iy), (x, y), color, thick)
-                ix, iy = x, y
+                cv2.line(canvas, (mouse_x, mouse_y), (x, y), color, thick)
+                mouse_x, mouse_y = x, y
 
     elif event == cv2.EVENT_LBUTTONUP:
         if drawing:
             if mode == 5:
-                cv2.line(canvas, (ix, iy), (x, y), color, thick)
+                cv2.line(canvas, (mouse_x, mouse_y), (x, y), color, thick)
             drawing = False
+
 # main
 cv2.namedWindow(window_name)
 
@@ -66,6 +67,8 @@ cv2.createTrackbar('Green', window_name, 0, 255, onChange)
 cv2.createTrackbar('Blue', window_name, 0, 255, onChange)
 cv2.createTrackbar('Radius', window_name, 10, 60, onChange)
 cv2.createTrackbar('Thickness', window_name, 2, 20, onChange)
+cv2.setTrackbarMin('Thickness', window_name, 1)
+
 
 CanvasInit()
 cv2.setMouseCallback(window_name, draw)

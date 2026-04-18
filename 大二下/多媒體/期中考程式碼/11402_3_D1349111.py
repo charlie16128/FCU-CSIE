@@ -28,6 +28,7 @@ def init_puzzle():
         random.shuffle(current_order)
         if current_order != correct_answer:
             break
+        # print(correct_answer)
     moves = 0
     success = False
     selected_pos = -1
@@ -77,12 +78,12 @@ while True:
 
     Thumbnail_img = cv2.resize(img, (150, 150))
     canvas[20:170, 675:825] = Thumbnail_img
-    cv2.putText(canvas, "Original", (710, 190), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+    cv2.putText(canvas, "Original", (710, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 0, 0), 2)
 
-    cv2.putText(canvas, f"Moves: {moves}", (650, 280), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
-    cv2.putText(canvas, "Click 2 blocks to swap", (620, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-    cv2.putText(canvas, "R: Restart", (650, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
-    cv2.putText(canvas, "Q: Quit", (650, 500), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
+    cv2.putText(canvas, f"Moves: {moves}", (640, 280), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 200, 0), 2)
+    cv2.putText(canvas, "Click 2 blocks to swap", (640, 350), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+    cv2.putText(canvas, "R: Restart", (640, 450), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
+    cv2.putText(canvas, "Q: Quit", (640, 500), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
 
     if success:
         cv2.putText(canvas, "SUCCESS!", (50, 350), cv2.FONT_HERSHEY_TRIPLEX, 3, (0, 0, 255), 10)
