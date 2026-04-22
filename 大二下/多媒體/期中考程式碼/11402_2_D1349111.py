@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 def onChange(x):
-    return
+    pass
 
 WindowName = 'edge_tool'
 cv2.namedWindow(WindowName)
@@ -46,7 +46,7 @@ while True:
     blur_rainbow = cv2.cvtColor(blur_img, cv2.COLOR_GRAY2BGR)
     method_rainbow = cv2.cvtColor(method_img, cv2.COLOR_GRAY2BGR)
 
-    cv2.putText(original_img, f"Original Img", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+    cv2.putText(original_img, f"Original", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
     cv2.putText(gray_rainbow, f"Gray", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
     cv2.putText(blur_rainbow, f"Blur_K (k = {blur_val})", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
     cv2.putText(method_rainbow, f"Method: {method_name}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)

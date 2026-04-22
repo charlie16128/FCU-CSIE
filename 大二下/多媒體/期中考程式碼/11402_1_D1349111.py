@@ -34,7 +34,7 @@ for i in range(h // 4):
 
 psnr = cv2.PSNR(img, decompressed_img)
 
-print(f"原圖與解壓縮比較的影像品質 PSNR:{psnr:.2f} db")
+print(f"原圖與解壓縮比較的影像品質 PSNR:{psnr:.2f}")
 
 index_img = cv2.normalize(index, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
