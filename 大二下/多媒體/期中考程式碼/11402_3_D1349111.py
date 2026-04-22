@@ -14,10 +14,18 @@ img = cv2.imread('lena.jpg')
 img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
 
 blocks = []
+cheat_blocks = []
+k = 0
 for i in range(3):
     for j in range(3):
         block = img[i * BLOCK_SIZE : (i+1) * BLOCK_SIZE, j * BLOCK_SIZE : (j+1) * BLOCK_SIZE].copy()
+        cheat_block = img[i * BLOCK_SIZE : (i+1) * BLOCK_SIZE, j * BLOCK_SIZE : (j+1) * BLOCK_SIZE].copy()
+        
+        cv2.putText(cheat_block, f"{k}", (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        
         blocks.append(block)
+        cheat_blocks.append(cheat_block)
+        k += 1
 
 current_order = list(range(9))
 correct_answer = list(range(9))
@@ -28,7 +36,6 @@ def init_puzzle():
         random.shuffle(current_order)
         if current_order != correct_answer:
             break
-        # print(correct_answer)
     moves = 0
     success = False
     selected_pos = -1
@@ -57,9 +64,11 @@ def on_mouse(event, x, y, flags, param):
 
 
 init_puzzle()
-cv2.namedWindow("11402_3_D1349111")
-cv2.setMouseCallback("11402_3_D1349111", on_mouse)
+WindowName = "11402_3_D1349111"
+cv2.namedWindow(WindowName)
+cv2.setMouseCallback(WindowName, on_mouse)
 
+cheat = False
 
 while True:
     canvas = np.full((IMG_SIZE, IMG_SIZE + INFO_WIDTH, 3), 255, dtype=np.uint8)
@@ -67,7 +76,11 @@ while True:
     for i in range(9):
         target_row = i // 3
         target_col = i % 3
-        block_to_draw = blocks[current_order[i]].copy()
+        
+        if cheat: 
+            block_to_draw = cheat_blocks[current_order[i]].copy()
+        else:
+            block_to_draw = blocks[current_order[i]].copy()
         
         cv2.rectangle(block_to_draw, (0,0), (BLOCK_SIZE, BLOCK_SIZE), (200, 200, 200), 1)
         
@@ -88,12 +101,15 @@ while True:
     if success:
         cv2.putText(canvas, "SUCCESS!", (50, 350), cv2.FONT_HERSHEY_TRIPLEX, 3, (0, 0, 255), 10)
 
-    cv2.imshow("11402_3_D1349111", canvas)
+    cv2.imshow(WindowName, canvas)
 
     key = cv2.waitKey(1)
-    if key == ord('q'):
+    if key == ord('q') or key == ord('Q'):
         break
-    elif key == ord('r'):
+    elif key == ord('r') or key == ord('R'):
+        init_puzzle()
+    elif key == ord('c') or key == ord('C'):
+        cheat = not cheat
         init_puzzle()
 
 cv2.destroyAllWindows()
