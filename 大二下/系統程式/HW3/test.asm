@@ -1,0 +1,39 @@
+000000  COPY    START   0
+
+000000  FIRST    STL     RETARD
+
+000003                 LDB     #LENGTH
+
+000006                 BASE    LENGTH
+
+000006  CLOOP   +JSUB   RDREC
+
+00000A                 LDA     LENGTH
+
+00000D                 COMP    #0
+
+000010                 JEQ     ENDFIL
+
+000013               +JSUB   WRREC
+
+000017                 J       CLOOP
+
+00001A  ENDFIL  LDA     EOF
+
+00001D                 STA     BUFFER
+
+000020                 LDA     #3
+
+000023                 STA     LENGTH
+
+000026              +JSUB   WRREC
+
+00002A               J       @RETARD
+
+00002D  EOF      BYTE    C'EOF'
+
+000030  RETARD  RESW    1
+
+000033  LENGTH  RESW    1
+
+000036  BUFFER  RESB    4096
