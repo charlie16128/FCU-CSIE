@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>Todo List</title>
+</head>
+<body>
+  <h1>📝 我的任務</h1>
+  <ul id="task-list"></ul>
+
+  <script>
+    // 取得並渲染任務列表
+    async function loadTasks() {
+      // 向後端 API 請求任務列表
+      // 發送 GET /tasks 並等待回應
+      const res = await fetch('/tasks'); 
+      // 將回應解析成 JSON（預期為陣列）
+      // 解析回應 JSON，並把結果放到 tasks 物件
+      const tasks = await res.json(); 
+
+      const list = document.getElementById('task-list');
+      // 每次載入前先清空列表，避免重複渲染
+      list.innerHTML = '';
+
+      // tasks 為物件
+      // 依序建立 <li> 並顯示任務內容
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.textContent = task;
+        list.appendChild(li);
+      });
+
+    }
+
+    // 頁面載入時執行一次
+    // 執行 loadTasks，觸發資料載入與渲染
+    loadTasks(); 
+
+  </script>
+</body>
+</html>
