@@ -8,7 +8,8 @@
 /*  2021.03.26 Process error: format 1 & 2 instruction use + 		   */
 /***********************************************************************/
 #include <string.h>
-#include "2-optable.c"
+#include <stdlib.h>
+#include "optable.c"
 
 /* Public variables and functions */
 #define	ADDR_SIMPLE			0x01
@@ -239,7 +240,116 @@ int process_line(LINE *line)
 	}
 }
 
+/* 新增：SYMTAB 結構與相關變數 */
+typedef struct {
+    char symbol[LEN_SYMBOL];
+    int  address;
+} SymbolEntry;
 
+SymbolEntry SYMTAB[100]; // 假設最多 100 個 Symbol
+int sym_count = 0;
+
+/* 新增：將 Symbol 加入表格的函式 */
+/* --- 修改處：確保只增加有名字的標記 --- */
+void add_to_symtab(char *name, int addr) {
+    // 如果名字長度為 0 或第一個字元是空的，就不存入
+    if (name == NULL || strlen(name) == 0 || name[0] == '\0') {
+        return;
+    }
+    
+    // 檢查是否已經存在 (避免重複存入同一個標記)
+    for(int i = 0; i < sym_count; i++) {
+        if(strcmp(SYMTAB[i].symbol, name) == 0) return;
+    }
+
+    strcpy(SYMTAB[sym_count].symbol, name);
+    SYMTAB[sym_count].address = addr;
+    sym_count++;
+}
+
+int main(int argc, char *argv[]) {
+    int ret;
+    int LOCCTR = 0;
+    int start_address = 0;
+    LINE line;
+
+    if (argc < 2) {
+        printf("Usage: %s fname.asm\n", argv[0]);
+        return 1;
+    }
+
+    if (ASM_open(argv[1]) == NULL) {
+        printf("File not found!!\n");
+        return 1;
+    }
+
+    // 第一行處理 START
+    ret = process_line(&line);
+    if (ret != LINE_EOF && strcmp(line.op, "START") == 0) {
+        start_address = (int)strtol(line.operand1, NULL, 16);
+        LOCCTR = start_address;
+        // 印出第一行 (需求 1)
+        printf("%06X  %-10s %-10s %-10s\n", LOCCTR, line.symbol, line.op, line.operand1);
+        
+        // 如果 START 有 Symbol 就存入
+        if (strlen(line.symbol) > 0) add_to_symtab(line.symbol, LOCCTR);
+        
+        ret = process_line(&line);
+    }
+
+    // 進入 Pass 1 迴圈
+    while (ret != LINE_EOF) {
+        if (ret == LINE_COMMENT) {
+            ret = process_line(&line);
+            continue;
+        }
+
+        if (ret == LINE_CORRECT) {
+            // 需求 1: 印出當前 LOCCTR 與指令
+            printf("%06X  %-10s %-10s %-10s %-10s\n", 
+                   LOCCTR, line.symbol, line.op, line.operand1, line.operand2);
+
+            // 需求 3: 如果這行有 Symbol，存入 SYMTAB
+            if (line.symbol[0] != '\0') {
+                add_to_symtab(line.symbol, LOCCTR);
+            }
+
+            // 更新 LOCCTR (計算這條指令佔多少 byte)
+            if (line.fmt == FMT1) LOCCTR += 1;
+            else if (line.fmt == FMT2) LOCCTR += 2;
+            else if (line.fmt == FMT3) LOCCTR += 3;
+            else if (line.fmt == FMT4) LOCCTR += 4;
+            else {
+                // 處理組譯位元 (Directives)
+                if (strcmp(line.op, "WORD") == 0)      LOCCTR += 3;
+                else if (strcmp(line.op, "RESW") == 0) LOCCTR += 3 * atoi(line.operand1);
+                else if (strcmp(line.op, "RESB") == 0) LOCCTR += atoi(line.operand1);
+                else if (strcmp(line.op, "BYTE") == 0) {
+                    if (line.operand1[0] == 'C') LOCCTR += (strlen(line.operand1) - 3);
+                    else if (line.operand1[0] == 'X') LOCCTR += (strlen(line.operand1) - 3) / 2;
+                }
+            }
+        }
+        
+        if (strcmp(line.op, "END") == 0) break;
+        ret = process_line(&line);
+    }
+
+    // 需求 2: 印出程式長度
+    printf("\nProgram length : %06X\n", LOCCTR - start_address);
+
+    // 需求 3: 印出 SYMTAB 符號表 (格式修正)
+    printf("\n--- SYMTAB ---\n");
+    for (int i = 0; i < sym_count; i++) {
+        // 修正印出格式為 "Symbol : 位址"
+        printf("%-10s : %06X\n", SYMTAB[i].symbol, SYMTAB[i].address);
+    }
+
+    ASM_close();
+    return 0;
+}
+
+/* 原本main
 int main(int argc, char *argv[])
 {
 	int			i, c, line_count;
@@ -269,3 +379,4 @@ int main(int argc, char *argv[])
 		}
 	}
 }
+*/

@@ -4,7 +4,7 @@
 /*  build OPTABLE.                                                                      */
 /*  2019.12.12                                                                              */
 /************************************************************************/
-#include "1-token.c"
+#include "token.c"
 
 /* Public variables and functions */
 #define	FMT0		0x00		/* SIC Assembler Directive */
