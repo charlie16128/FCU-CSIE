@@ -1,8 +1,8 @@
-COPY    START   0
+COPY    START   1000
 
 FIRST   STL     RETARD
 
-        LDB #LENGTH
+        LDB     #LENGTH
 
         BASE    LENGTH
 
@@ -30,10 +30,10 @@ ENDFIL  LDA     EOF
 
         J       @RETARD
 
-EOF      BYTE    C'EOF'
+EOF     BYTE    C'EOF'
 
-    RESW    1
+        RESW    1
 
-    RESW    1
+        RESW    1
 
-    RESB    4096
+        RESB    4096

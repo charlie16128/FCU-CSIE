@@ -1,12 +1,3 @@
-/***********************************************************************/
-/*  Program Name: 3-asm_pass1_u.c                                      */
-/*  This program is the part of SIC/XE assembler Pass 1.	  		   */
-/*  The program only identify the symbol, opcode and operand 		   */
-/*  of a line of the asm file. The program do not build the            */
-/*  SYMTAB.			                                               	   */
-/*  2019.12.13                                                         */
-/*  2021.03.26 Process error: format 1 & 2 instruction use + 		   */
-/***********************************************************************/
 #include <string.h>
 #include <stdlib.h>
 #include "optable.c"
@@ -239,28 +230,25 @@ int process_line(LINE *line)
 		return ret;
 	}
 }
-
-/* 新增：SYMTAB 結構與相關變數 */
 typedef struct {
     char symbol[LEN_SYMBOL];
     int  address;
 } SymbolEntry;
 
-SymbolEntry SYMTAB[100]; // 假設最多 100 個 Symbol
+SymbolEntry SYMTAB[100];
+
 int sym_count = 0;
 
-/* 新增：將 Symbol 加入表格的函式 */
-/* --- 修改處：確保只增加有名字的標記 --- */
 void add_to_symtab(char *name, int addr) {
     // 如果名字長度為 0 或第一個字元是空的，就不存入
-    if (name == NULL || strlen(name) == 0 || name[0] == '\0') {
-        return;
-    }
+    // if (name == NULL || strlen(name) == 0 || name[0] == '\0') {
+    //     return;
+    // }
     
     // 檢查是否已經存在 (避免重複存入同一個標記)
-    for(int i = 0; i < sym_count; i++) {
-        if(strcmp(SYMTAB[i].symbol, name) == 0) return;
-    }
+    // for(int i = 0; i < sym_count; i++) {
+    //     if(strcmp(SYMTAB[i].symbol, name) == 0) return;
+    // }
 
     strcpy(SYMTAB[sym_count].symbol, name);
     SYMTAB[sym_count].address = addr;
@@ -283,15 +271,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // 第一行處理 START
+    // START
     ret = process_line(&line);
     if (ret != LINE_EOF && strcmp(line.op, "START") == 0) {
         start_address = (int)strtol(line.operand1, NULL, 16);
         LOCCTR = start_address;
-        // 印出第一行 (需求 1)
-        printf("%06X  %-10s %-10s %-10s\n", LOCCTR, line.symbol, line.op, line.operand1);
+
+		printf("%06X  %-10s %-10s %-10s\n", LOCCTR, line.symbol, line.op, line.operand1);
         
-        // 如果 START 有 Symbol 就存入
         if (strlen(line.symbol) > 0) add_to_symtab(line.symbol, LOCCTR);
         
         ret = process_line(&line);
@@ -306,8 +293,7 @@ int main(int argc, char *argv[]) {
 
         if (ret == LINE_CORRECT) {
             // 需求 1: 印出當前 LOCCTR 與指令
-            printf("%06X  %-10s %-10s %-10s %-10s\n", 
-                   LOCCTR, line.symbol, line.op, line.operand1, line.operand2);
+            printf("%06X  %-10s %-10s %-10s %-10s\n", LOCCTR, line.symbol, line.op, line.operand1, line.operand2);	
 
             // 需求 3: 如果這行有 Symbol，存入 SYMTAB
             if (line.symbol[0] != '\0') {
@@ -335,13 +321,9 @@ int main(int argc, char *argv[]) {
         ret = process_line(&line);
     }
 
-    // 需求 2: 印出程式長度
     printf("\nProgram length : %06X\n", LOCCTR - start_address);
 
-    // 需求 3: 印出 SYMTAB 符號表 (格式修正)
-    printf("\n--- SYMTAB ---\n");
     for (int i = 0; i < sym_count; i++) {
-        // 修正印出格式為 "Symbol : 位址"
         printf("%-10s : %06X\n", SYMTAB[i].symbol, SYMTAB[i].address);
     }
 
