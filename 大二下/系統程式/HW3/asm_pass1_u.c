@@ -241,14 +241,14 @@ int sym_count = 0;
 
 void add_to_symtab(char *name, int addr) {
     // 如果名字長度為 0 或第一個字元是空的，就不存入
-    // if (name == NULL || strlen(name) == 0 || name[0] == '\0') {
-    //     return;
-    // }
+    if (name == NULL || strlen(name) == 0 || name[0] == '\0') {
+        return;
+    }
     
     // 檢查是否已經存在 (避免重複存入同一個標記)
-    // for(int i = 0; i < sym_count; i++) {
-    //     if(strcmp(SYMTAB[i].symbol, name) == 0) return;
-    // }
+    for(int i = 0; i < sym_count; i++) {
+        if(strcmp(SYMTAB[i].symbol, name) == 0) return;
+    }
 
     strcpy(SYMTAB[sym_count].symbol, name);
     SYMTAB[sym_count].address = addr;
@@ -283,8 +283,7 @@ int main(int argc, char *argv[]) {
         
         ret = process_line(&line);
     }
-
-    // 進入 Pass 1 迴圈
+	
     while (ret != LINE_EOF) {
         if (ret == LINE_COMMENT) {
             ret = process_line(&line);
@@ -292,21 +291,17 @@ int main(int argc, char *argv[]) {
         }
 
         if (ret == LINE_CORRECT) {
-            // 需求 1: 印出當前 LOCCTR 與指令
             printf("%06X  %-10s %-10s %-10s %-10s\n", LOCCTR, line.symbol, line.op, line.operand1, line.operand2);	
 
-            // 需求 3: 如果這行有 Symbol，存入 SYMTAB
             if (line.symbol[0] != '\0') {
                 add_to_symtab(line.symbol, LOCCTR);
             }
 
-            // 更新 LOCCTR (計算這條指令佔多少 byte)
             if (line.fmt == FMT1) LOCCTR += 1;
             else if (line.fmt == FMT2) LOCCTR += 2;
             else if (line.fmt == FMT3) LOCCTR += 3;
             else if (line.fmt == FMT4) LOCCTR += 4;
             else {
-                // 處理組譯位元 (Directives)
                 if (strcmp(line.op, "WORD") == 0)      LOCCTR += 3;
                 else if (strcmp(line.op, "RESW") == 0) LOCCTR += 3 * atoi(line.operand1);
                 else if (strcmp(line.op, "RESB") == 0) LOCCTR += atoi(line.operand1);
@@ -331,7 +326,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-/* 原本main
+/* 
 int main(int argc, char *argv[])
 {
 	int			i, c, line_count;
