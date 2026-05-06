@@ -1,4 +1,4 @@
-COPY    START   0
+COPY    START   A
 
 FIRST   STL     RETARD
 
