@@ -1,0 +1,119 @@
+<html>
+
+<head>
+  <title>Express</title>
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+
+<body>
+  <h1>Express</h1>
+  <p>Welcome to Express</p>
+
+  <hr>
+
+  <h2>新增電影台詞</h2>
+  <form id="quoteForm">
+    <div>
+      <label for="provider">提供者：</label>
+      <input type="text" id="provider" required>
+    </div>
+    <div>
+      <label for="movie_name">電影名稱：</label>
+      <input type="text" id="movie_name" required>
+    </div>
+    <div>
+      <label for="quote">電影台詞：</label>
+      <textarea id="quote" required></textarea>
+    </div>
+    <button type="submit">送出台詞</button>
+  </form>
+
+  <p id="responseMessage" style="font-weight: bold;"></p>
+
+  <hr>
+
+  <h2>所有電影台詞</h2>
+  <table border="1" id="quotesTable" style="width: 100%; text-align: left; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>提供者</th>
+        <th>電影名稱</th>
+        <th>電影台詞</th>
+        <th>投票數</th>
+      </tr>
+    </thead>
+    <tbody id="quotesBody">
+      <!-- 資料將插入於此 -->
+    </tbody>
+  </table>
+
+  <script>
+    // 渲染表格的共用函式
+    function renderTable(data) {
+      const quotesBody = document.getElementById('quotesBody');
+      quotesBody.innerHTML = ''; // 清空舊資料
+      data.forEach(quote => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${quote.id}</td>
+          <td>${quote.provider}</td>
+          <td>${quote.movie_name}</td>
+          <td>${quote.quote}</td>
+          <td>${quote.votes}</td>
+        `;
+        quotesBody.appendChild(row);
+      });
+    }
+
+    // 取得並顯示所有台詞的函式
+    async function loadQuotes() {
+      try {
+        const response = await fetch('/api/quotes');
+        const data = await response.json();
+        renderTable(data);
+      } catch (error) {
+        console.error('載入資料失敗:', error);
+      }
+    }
+
+    // 初始載入
+    loadQuotes();
+
+    document.getElementById('quoteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const provider = document.getElementById('provider').value;
+      const movie_name = document.getElementById('movie_name').value;
+      const quote = document.getElementById('quote').value;
+      const responseMessage = document.getElementById('responseMessage');
+
+      try {
+        // 使用 URLSearchParams 來處理 GET 請求的參數
+        const params = new URLSearchParams({ provider, movie_name, quote });
+        
+        const response = await fetch(`/api/insert?${params.toString()}`);
+        const result = await response.json();
+
+        if (response.ok) {
+          responseMessage.style.color = 'green';
+          responseMessage.innerText = `成功：${result.message}`;
+          // 清空表單
+          document.getElementById('quoteForm').reset();
+          
+          // 使用回傳的完整資料庫更新表格
+          renderTable(result.data);
+        } else {
+          responseMessage.style.color = 'red';
+          responseMessage.innerText = `錯誤：${result.error}`;
+        }
+      } catch (error) {
+        console.error('Fetch error:', error);
+        responseMessage.style.color = 'red';
+        responseMessage.innerText = '連線伺服器發生錯誤';
+      }
+    });
+  </script>
+</body>
+
+</html>
