@@ -84,14 +84,39 @@ app.get('/api/insert', (req, res) => {
     let provider = req.query.provider;
     let movie_name = req.query.movie_name;
     let quote = req.query.quote;
-    let sql = 'INSERT INTO movie_quotes (provider, movie_name, quote) VALUES (?, ?, ?)';
-    db.run(sql, [provider, movie_name, quote], (err) => {
+
+    let sql = 'INSERT INTO movie_quotes (provider, movie_name, quote, votes) VALUES (?, ?, ?, 0)';
+
+    db.run(sql, [provider, movie_name, quote], function (err) {
         if (err) {
             console.error(err.message);
-            res.status(500).send('Internal Server Error');
+            res.status(500).json({ error: 'Internal Server Error' });
             return;
         }
-        res.send('Insert success');
+        
+        // 查詢所有資料並回傳
+        db.all('SELECT * FROM movie_quotes', [], (err, rows) => {
+            if (err) {
+                return res.status(500).json({ error: '查詢資料庫失敗' });
+            }
+            res.json({
+                message: 'Insert success',
+                data: rows
+            });
+        });
+    });
+});
+
+// 取得所有台詞資料
+app.get('/api/quotes', (req, res) => {
+    const sql = 'SELECT * FROM movie_quotes';
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).json({ error: 'Internal Server Error' });
+            return;
+        }
+        res.json(rows);
     });
 });
 
