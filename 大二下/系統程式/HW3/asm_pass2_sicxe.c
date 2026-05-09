@@ -297,23 +297,25 @@ int main(int argc, char *argv[])
 	ret = process_line(&line);
 	if (ret != LINE_EOF && strcmp(line.op, "START") == 0)
 	{
-		printf("H%-6.6s%06X%06X\n", line.symbol, start_address, program_length);
+		printf("H%-6.6s%06X%06X\n", line.symbol, start_address, program_length);	// Head record
 		ret = process_line(&line);
 	}
 
 	while (ret != LINE_EOF)
 	{
-		if (ret == LINE_COMMENT) { ret = process_line(&line); continue; }
+		if (ret == LINE_COMMENT){ 
+			ret = process_line(&line); continue;
+		}
 		
 		if (ret == LINE_CORRECT)
 		{
 			if (strcmp(line.op, "END") == 0) 
 			{
 				flush_T_record();
-				for (int i = 0; i < M_count; i++) printf("M%06X05\n", M_records[i]);
+				for (int i = 0; i < M_count; i++) printf("M%06X05\n", M_records[i]);	// Modification record
 				int exec_addr = start_address; 
 				if (strlen(line.operand1) > 0) exec_addr = get_sym_address(line.operand1);
-				printf("E%06X\n", exec_addr);
+				printf("E%06X\n", exec_addr);	// End record
 				break;
 			}
 			
@@ -351,6 +353,7 @@ int main(int argc, char *argv[])
 					update_loc = len / 2;
 				}
 			}
+			
 			// Handle Real Instructions (FMT1, FMT2, FMT3, FMT4)
 			else if (line.code < 0x100) 
 			{
@@ -429,7 +432,7 @@ int main(int argc, char *argv[])
 			LOCCTR += update_loc;
 		}
 
-		ret = process_line(&line);
+		ret = process_line(&line);	//	Change to next line 
 	}
 	ASM_close();
 	return 0;
