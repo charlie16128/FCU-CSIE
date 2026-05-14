@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Shopping List</title>
+        <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    </head>
+    <body>
+        <div id="app">
+            <form id="shoppingForm" v-on:submit.prevent="addItem">
+                <label for="itemName">Item Name:</label>
+                <input type="text" id="itemName" required v-model="itemName">
+
+                <label for="itemNumber">Item Number:</label>
+                <input type="number" id="itemNumber" required v-model="itemNumber">
+
+                <button type="submit">Add Item</button>
+            </form>
+
+            <p>Shopping List:</p>
+
+            <ul>
+                <li v-for="item in shoppingList">{{item.name}} - {{item.number}}</li>
+            </ul>
+        </div>
+
+        <script>
+            const app = Vue.createApp({
+                data(){
+                    return{
+                        itemName:null,
+                        itemNumber:null,
+                        shoppingList:[
+                            { name: 'Milk', number: 2},
+                        ]
+                    };
+                },
+                methods:{
+                    addItem(){
+                        let item = {
+                            name:this.itemName,
+                            number:this.itemNumber,
+                        }
+                        this.shoppingList.push(item);
+                        this.itemName = null;
+                        this.itemNumber = null;
+                    }
+                }
+            });
+            app.mount('#app')
+        </script>
+    </body>
+</html>
