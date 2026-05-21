@@ -1,4 +1,5 @@
 # FCU-CSIE
+cd Desktop && mkdir temp && cd temp && code .
 ```
 ---常用指令---
 初始化Git
