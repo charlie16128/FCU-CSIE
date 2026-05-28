@@ -1,0 +1,113 @@
+[
+    // ==========================================
+    // 1. 基本移動 (Alt + I/J/K/L)
+    // ==========================================
+    {
+        "key": "alt+i",
+        "command": "cursorUp",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "alt+k",
+        "command": "cursorDown",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "alt+j",
+        "command": "cursorLeft",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "alt+l",
+        "command": "cursorRight",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+
+    // ==========================================
+    // 2. 大範圍跳字 (Ctrl + Alt + J/L)
+    // ==========================================
+    {
+        "key": "ctrl+alt+j",
+        "command": "cursorWordLeft",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+alt+k",
+        "command": "cursorWordRight",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+
+    // ==========================================
+    // 3. 跳到行首、行尾 (Alt + H / ;)
+    // ==========================================
+    {
+        "key": "alt+h",
+        "command": "cursorHome",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "alt+;",
+        "command": "cursorEnd",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+
+    // ==========================================
+    // 4. 基本選取字元 (Shift + Alt + I/J/K/L)
+    // ==========================================
+    {
+        "key": "shift+alt+i",
+        "command": "cursorUpSelect",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "shift+alt+k",
+        "command": "cursorDownSelect",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "shift+alt+j",
+        "command": "cursorLeftSelect",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "shift+alt+l",
+        "command": "cursorRightSelect",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+
+    // ==========================================
+    // 5. 大範圍選取單字 (Ctrl + Shift + Alt + J/L)
+    // ==========================================
+    {
+        "key": "ctrl+shift+alt+j",
+        "command": "cursorWordLeftSelect",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+shift+alt+l",
+        "command": "cursorWordRightSelect",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+
+    // ==========================================
+    // 6. 選取到行首、行尾 (Shift + Alt + H / ;)
+    // ==========================================
+    {
+        "key": "shift+alt+h",
+        "command": "cursorHomeSelect",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "shift+alt+;",
+        "command": "cursorEndSelect",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+
+    // ==========================================
+    // 7. 移除與 Windows 系統選單的潛在衝突
+    // ==========================================
+    {
+        "key": "alt+h",
+        "command": "-workbench.action.showCommands"
+    }
+]
