@@ -52,7 +52,7 @@ int main(void)
         if(key == 1){
             mode = 1;
             lastmode = 1;
-						while(ScanKey() == 1);
+			while(ScanKey() == 1); //wait 
         }else if(key == 2){
             if(mode == 2)
                 mode = lastmode;    
@@ -60,11 +60,11 @@ int main(void)
                 lastmode = mode;    
                 mode = 2;
             }
-            while(ScanKey() == 2);
+            while(ScanKey() == 2);//wait
         }else if(key == 3){
             mode = 3;
             lastmode = 3;
-						while(ScanKey() == 3);
+			while(ScanKey() == 3);//wait
         }
 				
 				
