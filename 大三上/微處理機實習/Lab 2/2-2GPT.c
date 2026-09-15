@@ -52,8 +52,8 @@ int main(void)
         if(key == 1){
             mode = 1;
             lastmode = 1;
-        }
-        else if(key == 2){
+						while(ScanKey() == 1);
+        }else if(key == 2){
             if(mode == 2)
                 mode = lastmode;    
             else{
@@ -61,10 +61,10 @@ int main(void)
                 mode = 2;
             }
             while(ScanKey() == 2);
-        }
-        else if(key == 3){
+        }else if(key == 3){
             mode = 3;
             lastmode = 3;
+						while(ScanKey() == 3);
         }
 				
 				
@@ -72,15 +72,12 @@ int main(void)
             showled(CurrentLed);
 
             CurrentLed++;
-            if(CurrentLed > 15)
-                CurrentLed = 12;
-        }
-        else if(mode == 3){
+            if(CurrentLed > 15) CurrentLed = 12;
+        }else if(mode == 3){
             showled(CurrentLed);
 
             CurrentLed--;
-            if(CurrentLed < 12)
-                CurrentLed = 15;
+            if(CurrentLed < 12) CurrentLed = 15;
         }
 
         CLK_SysTickDelay(100000);
