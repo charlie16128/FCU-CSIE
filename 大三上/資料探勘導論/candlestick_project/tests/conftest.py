@@ -130,3 +130,72 @@ def validation_rows() -> pd.DataFrame:
             },
         ]
     )
+
+
+@pytest.fixture
+def metric_frame() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "pattern_id": ["a", "b", "c"],
+            "direction": ["bullish", "bullish", "bullish"],
+            "occurrence_count": [30, 60, 90],
+            "success_count": [18, 42, 72],
+            "accuracy": [0.60, 0.70, 0.80],
+            "average_directional_profit": [0.05, 0.06, 0.07],
+        }
+    )
+
+
+@pytest.fixture
+def parameter_results() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "parameter_set_score": 0.8,
+                "mean_directional_profit": 0.07,
+                "mean_accuracy": 0.7,
+                "total_occurrence": 400,
+                "similarity_threshold": 0.6,
+            },
+            {
+                "parameter_set_score": 0.8,
+                "mean_directional_profit": 0.07,
+                "mean_accuracy": 0.7,
+                "total_occurrence": 400,
+                "similarity_threshold": 0.5,
+            },
+        ]
+    )
+
+
+@pytest.fixture
+def optimizer_data() -> tuple[pd.DataFrame, pd.DataFrame]:
+    pattern_rows = []
+    for direction, centroid in (("bullish", 0.0), ("bearish", 1.0)):
+        for index in range(10):
+            pattern_rows.append(
+                {
+                    "pattern_id": f"{direction}_{index:02d}",
+                    "direction": direction,
+                    "centroid_z": np.full(10, centroid).tolist(),
+                }
+            )
+    validation = []
+    for index in range(30):
+        validation.append(
+            {
+                "ticker": "2330.TW",
+                "date": pd.Timestamp("2024-01-02") + pd.offsets.BDay(index),
+                "features_z": np.zeros(10).tolist(),
+                "return_3d": 0.06,
+            }
+        )
+        validation.append(
+            {
+                "ticker": "2454.TW",
+                "date": pd.Timestamp("2024-01-02") + pd.offsets.BDay(index),
+                "features_z": np.ones(10).tolist(),
+                "return_3d": -0.07,
+            }
+        )
+    return pd.DataFrame(pattern_rows), pd.DataFrame(validation)
