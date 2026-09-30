@@ -22,8 +22,21 @@ def find_candidates(
 
     data = frame.copy()
     data["date"] = pd.to_datetime(data["date"])
+    if "return_3d_date" in data.columns:
+        data["return_3d_date"] = pd.to_datetime(
+            data["return_3d_date"],
+            errors="coerce",
+        )
+    else:
+        ordered = data.sort_values(["ticker", "date"], kind="stable")
+        ordered["return_3d_date"] = ordered.groupby(
+            "ticker",
+            observed=True,
+        )["date"].shift(-3)
+        data["return_3d_date"] = ordered["return_3d_date"]
     valid = (
         data["date"].between(start, end)
+        & data["return_3d_date"].between(start, end)
         & data["pattern_eligible"].fillna(False)
         & data[list(FEATURE_COLUMNS)].notna().all(axis=1)
         & data["return_3d"].notna()

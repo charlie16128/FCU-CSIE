@@ -51,5 +51,9 @@ def build_features(frame: pd.DataFrame) -> pd.DataFrame:
         )
     data["trend"] = (close.shift(2) - close.shift(7)) / close.shift(7)
     data["return_3d"] = (close.shift(-3) - close) / close
+    data["return_3d_date"] = pd.Series(
+        data.index,
+        index=data.index,
+    ).shift(-3)
     data.loc[volume.eq(0), "pattern_eligible"] = False
     return data

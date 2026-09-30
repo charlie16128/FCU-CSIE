@@ -23,7 +23,21 @@ def load_tickers(path: Path) -> list[str]:
 
 def write_csv(frame: pd.DataFrame, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    frame.to_csv(path, index=False, encoding="utf-8", date_format="%Y-%m-%d")
+    output = frame.copy()
+    for column in output.columns:
+        if output[column].map(
+            lambda value: isinstance(value, (list, tuple, dict, np.ndarray))
+        ).any():
+            output[column] = output[column].map(
+                lambda value: json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    default=_json_default,
+                )
+                if isinstance(value, (list, tuple, dict, np.ndarray))
+                else value
+            )
+    output.to_csv(path, index=False, encoding="utf-8", date_format="%Y-%m-%d")
 
 
 def _json_default(value: Any) -> Any:

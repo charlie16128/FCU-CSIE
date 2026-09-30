@@ -48,6 +48,9 @@ def test_small_grid_search_evaluates_each_parameter_set_and_prefers_stricter_tie
     assert best["parameter_set_score"] == 1.0
     assert search["eligible_bullish_patterns"].eq(10).all()
     assert search["eligible_bearish_patterns"].eq(10).all()
+    assert {"today_shape_weight", "previous_shape_weight"} <= set(search.columns)
+    assert "today_weight" not in search.columns
+    assert "previous_weight" not in search.columns
 
 
 def test_optimizer_rejects_2026_rows(optimizer_data):

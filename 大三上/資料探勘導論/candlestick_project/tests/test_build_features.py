@@ -47,6 +47,7 @@ def test_feature_formulas_use_exact_specification(sample_ohlcv):
         row["return_3d"],
         (sample_ohlcv.iloc[position + 3]["Close"] - close) / close,
     )
+    assert row["return_3d_date"] == sample_ohlcv.index[position + 3]
     assert list(FEATURE_COLUMNS) == [
         "upper",
         "lower",
@@ -76,3 +77,4 @@ def test_rolling_and_future_boundaries_remain_nan(sample_ohlcv):
     assert result["trend"].iloc[:7].isna().all()
     assert result["volume_feature"].iloc[:4].isna().all()
     assert result["return_3d"].iloc[-3:].isna().all()
+    assert result["return_3d_date"].iloc[-3:].isna().all()

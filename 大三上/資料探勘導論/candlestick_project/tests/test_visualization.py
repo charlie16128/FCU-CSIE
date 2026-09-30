@@ -26,3 +26,22 @@ def test_figure_generation_does_not_modify_input(tmp_path, display_fixture):
 
     for key, expected in snapshots.items():
         assert display_fixture[key].equals(expected)
+
+
+def test_top10_figures_use_centroids_instead_of_profit_bars(
+    tmp_path,
+    display_fixture,
+):
+    from src.visualization import generate_required_figures
+
+    display_fixture["bullish"] = display_fixture["bullish"].drop(
+        columns="average_directional_profit"
+    )
+    display_fixture["bearish"] = display_fixture["bearish"].drop(
+        columns="average_directional_profit"
+    )
+
+    generated = generate_required_figures(display_fixture, tmp_path)
+
+    assert (tmp_path / "top10_bullish.png") in generated
+    assert (tmp_path / "top10_bearish.png") in generated

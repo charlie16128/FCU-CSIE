@@ -29,6 +29,21 @@ def test_candidates_use_discovery_period_and_strict_five_percent_boundaries(
     )
 
 
+def test_discovery_excludes_label_realized_after_2023(feature_frame):
+    crossing = feature_frame.iloc[[0]].copy()
+    crossing["date"] = pd.Timestamp("2023-12-29")
+    crossing["return_3d_date"] = pd.Timestamp("2024-01-04")
+    crossing["return_3d"] = 0.08
+
+    result = find_candidates(
+        crossing,
+        pd.Timestamp("2018-01-01"),
+        pd.Timestamp("2023-12-31"),
+    )
+
+    assert result.empty
+
+
 def test_cluster_centroids_preserve_standardized_and_raw_scales(candidate_frame):
     scaler = fit_discovery_scaler(candidate_frame)
 

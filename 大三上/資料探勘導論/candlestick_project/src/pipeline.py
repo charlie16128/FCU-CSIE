@@ -48,6 +48,11 @@ def _load_processed(project_root: Path) -> pd.DataFrame:
         if "date" not in frame.columns:
             raise ValueError(f"Processed file {path} has no Date column")
         frame["date"] = pd.to_datetime(frame["date"], errors="raise")
+        if "return_3d_date" in frame.columns:
+            frame["return_3d_date"] = pd.to_datetime(
+                frame["return_3d_date"],
+                errors="coerce",
+            )
         frame["ticker"] = path.stem
         frames.append(frame)
     return pd.concat(frames, ignore_index=True)
@@ -55,7 +60,7 @@ def _load_processed(project_root: Path) -> pd.DataFrame:
 
 def _decode_vectors(frame: pd.DataFrame) -> pd.DataFrame:
     result = frame.copy()
-    for column in ("centroid_z", "centroid_raw"):
+    for column in ("centroid_z", "centroid_raw", "source_candidates"):
         if column in result.columns:
             result[column] = result[column].map(
                 lambda value: json.loads(value) if isinstance(value, str) else value
@@ -152,6 +157,12 @@ def train_patterns(project_root: Path) -> dict[str, int]:
     settings = load_settings(root / "config" / "settings.yaml")
     logger = configure_logging(root / "logs")
     data = _load_processed(root)
+    effective_tickers = int(data["ticker"].nunique())
+    if effective_tickers < 50:
+        logger.warning(
+            "Effective modeling universe has only %d stocks; at least 50 are required for the formal run",
+            effective_tickers,
+        )
     discovery = data.loc[
         data["date"].between(
             pd.Timestamp(settings.dates.discovery_start),
@@ -202,6 +213,12 @@ def train_patterns(project_root: Path) -> dict[str, int]:
                 settings.cluster_warning_minimum,
                 settings.cluster_warning_maximum,
             )
+    logger.info(
+        "Training summary: %d bullish candidates, %d bearish candidates, %d patterns",
+        len(bullish),
+        len(bearish),
+        len(patterns),
+    )
     return {
         "bullish_candidates": len(bullish),
         "bearish_candidates": len(bearish),
@@ -215,8 +232,25 @@ def _evaluation_rows(
     start,
     end,
 ) -> pd.DataFrame:
+    data = data.copy()
+    if "return_3d_date" in data.columns:
+        data["return_3d_date"] = pd.to_datetime(
+            data["return_3d_date"],
+            errors="coerce",
+        )
+    else:
+        ordered = data.sort_values(["ticker", "date"], kind="stable")
+        ordered["return_3d_date"] = ordered.groupby(
+            "ticker",
+            observed=True,
+        )["date"].shift(-3)
+        data["return_3d_date"] = ordered["return_3d_date"]
     rows = data.loc[
         data["date"].between(pd.Timestamp(start), pd.Timestamp(end))
+        & data["return_3d_date"].between(
+            pd.Timestamp(start),
+            pd.Timestamp(end),
+        )
         & data["pattern_eligible"].fillna(False)
         & data[list(FEATURE_COLUMNS)].notna().all(axis=1)
         & data["return_3d"].notna()
@@ -306,6 +340,9 @@ def validate_patterns(project_root: Path) -> dict[str, object]:
     }
     final_model = {
         "scaler_path": "models/scaler.pkl",
+        "group_weights": {
+            key: float(best[key]) for key in WEIGHT_COLUMNS
+        },
         "feature_weights": weights.tolist(),
         "similarity_threshold": float(best["similarity_threshold"]),
         "minimum_occurrence": policy["minimum_occurrence"],
@@ -335,6 +372,12 @@ def validate_patterns(project_root: Path) -> dict[str, object]:
         logger.warning("Top 10 selection thresholds were relaxed: %s", policy)
     else:
         logger.info("Top 10 selection policy: %s", policy)
+    logger.info(
+        "Best validation parameters: weights=%s threshold=%s score=%s",
+        _group_weights(best),
+        best["similarity_threshold"],
+        best["parameter_set_score"],
+    )
     return best_params
 
 
@@ -346,6 +389,21 @@ def _validation_labels(frame: pd.DataFrame) -> pd.Series:
         lambda row: "/".join(f"{float(value):g}" for value in row),
         axis=1,
     )
+
+
+def _validate_test_coverage(
+    configured_tickers: list[str],
+    rows: pd.DataFrame,
+) -> None:
+    if len(configured_tickers) < 10:
+        raise ValueError("Final test requires at least 10 configured tickers")
+    available = set(rows["ticker"].astype(str)) if "ticker" in rows.columns else set()
+    missing = sorted(set(configured_tickers) - available)
+    if missing:
+        raise ValueError(
+            "Final test is missing valid 2026 rows for configured tickers: "
+            + ", ".join(missing)
+        )
 
 
 def test_patterns(project_root: Path) -> dict[str, float | int]:
@@ -360,7 +418,10 @@ def test_patterns(project_root: Path) -> dict[str, float | int]:
     scaler = joblib.load(
         _require(root / "models" / "scaler.pkl", "Run --train first")
     )
-    test_tickers = set(load_tickers(root / "config" / "test_tickers.txt"))
+    configured_tickers = load_tickers(root / "config" / "test_tickers.txt")
+    if len(configured_tickers) < 10:
+        raise ValueError("Final test requires at least 10 configured tickers")
+    test_tickers = set(configured_tickers)
     data = _load_processed(root)
     data = data.loc[data["ticker"].isin(test_tickers)].copy()
     rows = _evaluation_rows(
@@ -369,6 +430,7 @@ def test_patterns(project_root: Path) -> dict[str, float | int]:
         settings.dates.test_start,
         settings.dates.test_end,
     )
+    _validate_test_coverage(configured_tickers, rows)
     result = evaluate_final_test(
         model,
         rows,
@@ -407,5 +469,9 @@ def test_patterns(project_root: Path) -> dict[str, float | int]:
             "stock_test": result.stock_metrics,
         },
         root / "outputs" / "figures",
+    )
+    configure_logging(root / "logs").info(
+        "2026 final-test summary: %s",
+        result.overall_metrics,
     )
     return result.overall_metrics

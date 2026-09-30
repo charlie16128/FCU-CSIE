@@ -1,8 +1,10 @@
 import json
+from unittest.mock import Mock
 
 import joblib
 import numpy as np
 import pandas as pd
+import pytest
 from sklearn.preprocessing import StandardScaler
 
 from src.build_features import FEATURE_COLUMNS
@@ -43,6 +45,7 @@ def _processed_rows() -> pd.DataFrame:
     ):
         row = {
             "Date": date,
+            "return_3d_date": date + pd.offsets.BDay(3),
             "pattern_eligible": True,
             "return_3d": return_3d,
         }
@@ -60,6 +63,7 @@ def _processed_rows() -> pd.DataFrame:
             for date in dates:
                 row = {
                     "Date": date,
+                    "return_3d_date": date + pd.offsets.BDay(3),
                     "pattern_eligible": True,
                     "return_3d": return_3d,
                 }
@@ -74,6 +78,7 @@ def _processed_rows() -> pd.DataFrame:
         centroid[0] = first_feature
         row = {
             "Date": date,
+            "return_3d_date": date + pd.offsets.BDay(3),
             "pattern_eligible": True,
             "return_3d": return_3d,
         }
@@ -108,9 +113,21 @@ runtime:
         encoding="utf-8",
     )
     (root / "config" / "test_tickers.txt").write_text(
-        "2330.TW\n",
+        "".join(f"TEST{index:02d}.TW\n" for index in range(10)),
         encoding="utf-8",
     )
+
+
+def test_final_test_requires_at_least_ten_configured_and_available_tickers():
+    from src.pipeline import _validate_test_coverage
+
+    rows = pd.DataFrame({"ticker": [f"TEST{index:02d}.TW" for index in range(9)]})
+    with pytest.raises(ValueError, match="at least 10"):
+        _validate_test_coverage([f"TEST{index:02d}.TW" for index in range(9)], rows)
+
+    configured = [f"TEST{index:02d}.TW" for index in range(10)]
+    with pytest.raises(ValueError, match="missing valid 2026 rows"):
+        _validate_test_coverage(configured, rows)
 
 
 def test_synthetic_train_validate_and_test_write_all_artifacts(tmp_path, monkeypatch):
@@ -119,10 +136,14 @@ def test_synthetic_train_validate_and_test_write_all_artifacts(tmp_path, monkeyp
     _write_config(tmp_path)
     processed_dir = tmp_path / "data" / "processed"
     processed_dir.mkdir(parents=True)
-    _processed_rows().to_csv(processed_dir / "2330.TW.csv", index=False)
+    processed = _processed_rows()
+    for index in range(10):
+        processed.to_csv(processed_dir / f"TEST{index:02d}.TW.csv", index=False)
     patterns = _patterns()
     scaler = _identity_scaler()
+    logger = Mock()
 
+    monkeypatch.setattr(pipeline, "configure_logging", lambda path: logger)
     monkeypatch.setattr(pipeline, "fit_discovery_scaler", lambda data: scaler)
     monkeypatch.setattr(
         pipeline,
@@ -132,8 +153,8 @@ def test_synthetic_train_validate_and_test_write_all_artifacts(tmp_path, monkeyp
 
     def fake_optimize(pattern_frame, rows, **kwargs):
         best = {
-            "today_weight": 1.0,
-            "previous_weight": 1.0,
+            "today_shape_weight": 1.0,
+            "previous_shape_weight": 1.0,
             "position_weight": 1.0,
             "volume_weight": 1.0,
             "trend_weight": 1.0,
@@ -155,7 +176,11 @@ def test_synthetic_train_validate_and_test_write_all_artifacts(tmp_path, monkeyp
 
     assert train_summary["patterns"] == 20
     assert best["similarity_threshold"] == 0.1
-    assert overall["total_signals"] == 2
+    assert overall["total_signals"] == 20
+    assert any(
+        "Effective modeling universe" in str(call.args[0])
+        for call in logger.warning.call_args_list
+    )
 
     expected = {
         "data/results/bullish_candidates.csv",

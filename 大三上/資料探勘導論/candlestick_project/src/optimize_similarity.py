@@ -11,8 +11,8 @@ from .similarity import expand_group_weights, pairwise_weighted_distances
 VALIDATION_START = pd.Timestamp("2024-01-01")
 VALIDATION_END = pd.Timestamp("2025-12-31")
 WEIGHT_COLUMNS = (
-    "today_weight",
-    "previous_weight",
+    "today_shape_weight",
+    "previous_shape_weight",
     "position_weight",
     "volume_weight",
     "trend_weight",

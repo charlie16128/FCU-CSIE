@@ -5,6 +5,7 @@ __pycache__/
 data/raw/*.csv
 data/processed/*.csv
 data/results/*.csv
+data/results/*.json
 models/*.pkl
 models/*.joblib
 models/*.json
