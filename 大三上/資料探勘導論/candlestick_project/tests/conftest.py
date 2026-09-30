@@ -86,3 +86,47 @@ def candidate_frame(feature_frame: pd.DataFrame) -> pd.DataFrame:
         "bearish",
     )
     return frame.reset_index(drop=True)
+
+
+@pytest.fixture
+def patterns() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "pattern_id": "bullish_0001",
+                "direction": "bullish",
+                "centroid_z": np.zeros(10).tolist(),
+            },
+            {
+                "pattern_id": "bearish_0001",
+                "direction": "bearish",
+                "centroid_z": np.ones(10).tolist(),
+            },
+        ]
+    )
+
+
+@pytest.fixture
+def validation_rows() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "ticker": "2330.TW",
+                "date": pd.Timestamp("2024-01-02"),
+                "features_z": np.zeros(10).tolist(),
+                "return_3d": 0.06,
+            },
+            {
+                "ticker": "2454.TW",
+                "date": pd.Timestamp("2024-01-03"),
+                "features_z": np.ones(10).tolist(),
+                "return_3d": -0.07,
+            },
+            {
+                "ticker": "2308.TW",
+                "date": pd.Timestamp("2024-01-04"),
+                "features_z": np.full(10, 0.02).tolist(),
+                "return_3d": 0.05,
+            },
+        ]
+    )
