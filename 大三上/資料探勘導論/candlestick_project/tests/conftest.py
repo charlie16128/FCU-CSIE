@@ -199,3 +199,51 @@ def optimizer_data() -> tuple[pd.DataFrame, pd.DataFrame]:
             }
         )
     return pd.DataFrame(pattern_rows), pd.DataFrame(validation)
+
+
+@pytest.fixture
+def display_fixture() -> dict[str, pd.DataFrame]:
+    base_columns = {
+        "centroid_raw": [np.zeros(10).tolist()],
+        "occurrence_count": [35],
+        "accuracy": [0.70],
+        "average_directional_profit": [0.06],
+    }
+    bullish = pd.DataFrame(
+        {
+            "pattern_id": ["bullish_01"],
+            "direction": ["bullish"],
+            **base_columns,
+        }
+    )
+    bearish = pd.DataFrame(
+        {
+            "pattern_id": ["bearish_01"],
+            "direction": ["bearish"],
+            **base_columns,
+        }
+    )
+    return {
+        "bullish": bullish,
+        "bearish": bearish,
+        "validation": pd.DataFrame(
+            {
+                "label": ["w=1.0, t=0.5"],
+                "parameter_set_score": [0.82],
+            }
+        ),
+        "pattern_test": pd.DataFrame(
+            {
+                "pattern_id": ["bullish_01", "bearish_01"],
+                "number_of_matches": [8, 7],
+                "accuracy": [0.75, 0.71],
+                "average_directional_profit": [0.07, 0.06],
+            }
+        ),
+        "stock_test": pd.DataFrame(
+            {
+                "ticker": ["2330.TW", "2454.TW"],
+                "average_directional_profit": [0.06, 0.05],
+            }
+        ),
+    }
