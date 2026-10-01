@@ -8,9 +8,9 @@ Improve validation coverage so the locked candlestick model can produce meaningf
 
 This first round changes only model discovery and validation selection:
 
-- Set the assignment-defined minimum frequency parameter to `n = 5`.
+- Set the assignment-defined minimum frequency parameter to `n = 3`.
 - Keep the current minimum validation accuracy at `0.55`.
-- Search similarity thresholds from `0.4` through `1.4` in increments of `0.1`.
+- Search similarity thresholds from `0.4` through `2.0` in increments of `0.1`.
 - Search clustering distance thresholds `1.0`, `1.25`, `1.5`, and `2.0`.
 - Keep the existing three interpretable weight presets.
 - Select parameters by qualification and coverage before profit.
@@ -33,13 +33,13 @@ For each clustering threshold:
 1. Cluster 2018-2023 bullish and bearish candidates separately.
 2. Transform 2024-2025 validation rows with the discovery-only scaler.
 3. For each existing weight preset, compute the pattern-to-row distance matrix once.
-4. Reuse that matrix for all eleven similarity thresholds.
+4. Reuse that matrix for all seventeen similarity thresholds.
 5. Compute validation metrics for every pattern.
 
 Each pattern qualifies when:
 
 ```text
-occurrence_count >= 5
+occurrence_count >= 3
 accuracy >= 0.55
 ```
 
@@ -55,6 +55,8 @@ Parameter combinations are ranked lexicographically by:
 8. smaller clustering threshold.
 
 This ordering prevents a one-off high-profit match from defeating a configuration with adequate validation coverage.
+
+The original `n = 5` and maximum similarity threshold `1.4` design was executed first. Its best validation configuration produced only four qualified bullish and three qualified bearish patterns. A validation-only diagnostic then showed that `n = 3` with thresholds searched through `2.0` was the first tested range to produce at least ten qualified patterns in both directions while retaining `accuracy >= 0.55`. With three occurrences, the accuracy rule requires at least two successes, so a pattern cannot qualify from a single lucky event.
 
 ## Final Pattern Selection
 
@@ -73,9 +75,8 @@ If the best configuration still has fewer than ten qualified bullish or bearish 
 
 Automated tests will verify:
 
-- the threshold grids and `n = 5` configuration;
+- the threshold grids and `n = 3` configuration;
 - coverage-first parameter ranking;
 - rejection of unqualified Top 10 fillers;
 - propagation of the clustering threshold through discovery and the locked model;
 - existing feature, leakage, test-output, CLI, and GUI contracts.
-

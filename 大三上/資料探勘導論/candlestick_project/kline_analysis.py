@@ -6,7 +6,6 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -15,6 +14,7 @@ from sklearn.preprocessing import StandardScaler
 
 from config import (
     CLUSTER_DISTANCE_THRESHOLD,
+    CLUSTER_DISTANCE_THRESHOLDS,
     DISCOVERY_END,
     DISCOVERY_START,
     MIN_ACCURACY,
@@ -173,6 +173,7 @@ def _cluster_direction(
     candidates: pd.DataFrame,
     direction: str,
     scaler: StandardScaler,
+    cluster_distance_threshold: float = CLUSTER_DISTANCE_THRESHOLD,
 ) -> list[dict[str, object]]:
     if candidates.empty:
         return []
@@ -183,7 +184,7 @@ def _cluster_direction(
     else:
         model = AgglomerativeClustering(
             n_clusters=None,
-            distance_threshold=CLUSTER_DISTANCE_THRESHOLD,
+            distance_threshold=cluster_distance_threshold,
             linkage="ward",
         )
         labels = model.fit_predict(features_z)
@@ -213,6 +214,7 @@ def _cluster_direction(
 
 def discover_patterns(
     feature_rows: pd.DataFrame,
+    cluster_distance_threshold: float = CLUSTER_DISTANCE_THRESHOLD,
 ) -> tuple[StandardScaler, pd.DataFrame]:
     """Fit discovery-only scaling and cluster strict ±5% candidates."""
     discovery = _period_rows(feature_rows, DISCOVERY_START, DISCOVERY_END)
@@ -224,8 +226,18 @@ def discover_patterns(
     bullish = discovery.loc[discovery["return_3d"] > 0.05].copy()
     bearish = discovery.loc[discovery["return_3d"] < -0.05].copy()
     records = [
-        *_cluster_direction(bullish, "bullish", scaler),
-        *_cluster_direction(bearish, "bearish", scaler),
+        *_cluster_direction(
+            bullish,
+            "bullish",
+            scaler,
+            cluster_distance_threshold,
+        ),
+        *_cluster_direction(
+            bearish,
+            "bearish",
+            scaler,
+            cluster_distance_threshold,
+        ),
     ]
     if not records:
         raise ValueError("Discovery found no bullish or bearish candidates")
@@ -256,6 +268,51 @@ def _decode_vector(value: object) -> list[float]:
     return result.tolist()
 
 
+def _pattern_metrics_from_distances(
+    patterns: pd.DataFrame,
+    rows: pd.DataFrame,
+    distances: np.ndarray,
+    threshold: float,
+) -> pd.DataFrame:
+    """Calculate per-pattern metrics from an already computed distance matrix."""
+    distance_values = np.asarray(distances, dtype=float)
+    expected_shape = (len(patterns), len(rows))
+    if distance_values.shape != expected_shape:
+        raise ValueError(
+            f"distance matrix must have shape {expected_shape}, got {distance_values.shape}"
+        )
+    metric_records: list[dict[str, object]] = []
+
+    for pattern_position, pattern in patterns.reset_index(drop=True).iterrows():
+        matched_positions = np.flatnonzero(
+            distance_values[pattern_position] <= threshold
+        )
+        matched = rows.iloc[matched_positions]
+        direction = str(pattern["direction"])
+        if direction == "bullish":
+            successes = matched["return_3d"] > 0.05
+            directional = matched["return_3d"]
+        elif direction == "bearish":
+            successes = matched["return_3d"] < -0.05
+            directional = -matched["return_3d"]
+        else:
+            raise ValueError(f"Unknown pattern direction: {direction}")
+
+        count = len(matched)
+        metric_records.append(
+            {
+                "pattern_id": pattern["pattern_id"],
+                "direction": direction,
+                "occurrence_count": count,
+                "success_count": int(successes.sum()),
+                "accuracy": float(successes.mean()) if count else 0.0,
+                "average_return_3d": float(matched["return_3d"].mean()) if count else 0.0,
+                "average_directional_profit": float(directional.mean()) if count else 0.0,
+            }
+        )
+    return pd.DataFrame(metric_records)
+
+
 def backtest_patterns(
     patterns: pd.DataFrame,
     rows: pd.DataFrame,
@@ -266,8 +323,8 @@ def backtest_patterns(
     pattern_vectors = np.vstack(patterns["centroid_z"].map(_decode_vector))
     row_vectors = np.vstack(rows["features_z"].map(_decode_vector))
     distances = pairwise_weighted_distances(pattern_vectors, row_vectors, weights)
+    metrics = _pattern_metrics_from_distances(patterns, rows, distances, threshold)
     signal_records: list[dict[str, object]] = []
-    metric_records: list[dict[str, object]] = []
 
     for pattern_position, pattern in patterns.reset_index(drop=True).iterrows():
         matched_positions = np.flatnonzero(distances[pattern_position] <= threshold)
@@ -290,25 +347,15 @@ def backtest_patterns(
                     "ticker": row["ticker"],
                     "date": row["date"],
                     "return_3d": float(row["return_3d"]),
-                    "distance": float(distances[pattern_position, matched_positions[local_position]]),
+                    "distance": float(
+                        distances[pattern_position, matched_positions[local_position]]
+                    ),
                     "success": bool(successes.loc[row_index]),
                     "directional_profit": float(directional.loc[row_index]),
                 }
             )
 
-        count = len(matched)
-        metric_records.append(
-            {
-                "pattern_id": pattern["pattern_id"],
-                "direction": direction,
-                "occurrence_count": count,
-                "success_count": int(successes.sum()),
-                "accuracy": float(successes.mean()) if count else 0.0,
-                "average_return_3d": float(matched["return_3d"].mean()) if count else 0.0,
-                "average_directional_profit": float(directional.mean()) if count else 0.0,
-            }
-        )
-    return pd.DataFrame(metric_records), pd.DataFrame(
+    return metrics, pd.DataFrame(
         signal_records,
         columns=SIGNAL_COLUMNS,
     )
@@ -316,78 +363,106 @@ def backtest_patterns(
 
 def _parameter_summary(metrics: pd.DataFrame) -> dict[str, float | int]:
     selected_parts: list[pd.DataFrame] = []
-    qualified_count = 0
+    qualified_counts: dict[str, int] = {}
     direction_profits: list[float] = []
     direction_accuracies: list[float] = []
     for direction in ("bullish", "bearish"):
         part = metrics.loc[metrics["direction"].eq(direction)]
-        if part.empty:
-            return {
-                "parameter_set_score": float("-inf"),
-                "mean_accuracy": 0.0,
-                "total_occurrence": 0,
-                "qualified_patterns": qualified_count,
-            }
         qualified = part.loc[
             part["occurrence_count"].ge(MIN_OCCURRENCES)
             & part["accuracy"].ge(MIN_ACCURACY)
         ]
-        qualified_count += len(qualified)
-        ranked = part.sort_values(
+        qualified_counts[direction] = len(qualified)
+        top = qualified.sort_values(
             ["average_directional_profit", "accuracy", "occurrence_count"],
             ascending=False,
             kind="stable",
-        )
-        top = pd.concat(
-            [
-                qualified.sort_values(
-                    ["average_directional_profit", "accuracy", "occurrence_count"],
-                    ascending=False,
-                    kind="stable",
-                ),
-                ranked.loc[~ranked["pattern_id"].isin(qualified["pattern_id"])],
-            ],
-            ignore_index=True,
         ).head(10)
-        selected_parts.append(top)
-        direction_profits.append(float(top["average_directional_profit"].mean()))
-        direction_accuracies.append(float(top["accuracy"].mean()))
-    selected = pd.concat(selected_parts, ignore_index=True)
+        if not top.empty:
+            selected_parts.append(top)
+            direction_profits.append(float(top["average_directional_profit"].mean()))
+            direction_accuracies.append(float(top["accuracy"].mean()))
+    selected = (
+        pd.concat(selected_parts, ignore_index=True)
+        if selected_parts
+        else pd.DataFrame(columns=metrics.columns)
+    )
+    bullish_count = qualified_counts.get("bullish", 0)
+    bearish_count = qualified_counts.get("bearish", 0)
     return {
-        "parameter_set_score": float(np.mean(direction_profits)),
-        "mean_accuracy": float(np.mean(direction_accuracies)),
-        "total_occurrence": int(selected["occurrence_count"].sum()),
-        "qualified_patterns": int(qualified_count),
+        "parameter_set_score": (
+            float(np.mean(direction_profits)) if direction_profits else 0.0
+        ),
+        "mean_accuracy": (
+            float(np.mean(direction_accuracies)) if direction_accuracies else 0.0
+        ),
+        "total_occurrence": (
+            int(selected["occurrence_count"].sum()) if not selected.empty else 0
+        ),
+        "qualified_patterns": int(bullish_count + bearish_count),
+        "qualified_bullish_patterns": int(bullish_count),
+        "qualified_bearish_patterns": int(bearish_count),
+        "min_qualified_patterns": int(min(bullish_count, bearish_count)),
+        "has_ten_each": int(bullish_count >= 10 and bearish_count >= 10),
     }
+
+
+def _rank_parameter_search(search: pd.DataFrame) -> pd.DataFrame:
+    """Rank validation configurations by coverage before profitability."""
+    sort_columns = [
+        "has_ten_each",
+        "min_qualified_patterns",
+        "qualified_patterns",
+        "total_occurrence",
+        "parameter_set_score",
+        "mean_accuracy",
+        "similarity_threshold",
+    ]
+    ascending = [False, False, False, False, False, False, True]
+    if "cluster_distance_threshold" in search.columns:
+        sort_columns.append("cluster_distance_threshold")
+        ascending.append(True)
+    return search.sort_values(
+        sort_columns,
+        ascending=ascending,
+        kind="stable",
+    ).reset_index(drop=True)
 
 
 def choose_parameters(
     patterns: pd.DataFrame,
     validation_rows: pd.DataFrame,
+    cluster_distance_threshold: float | None = None,
 ) -> dict[str, object]:
-    """Choose among three understandable weight presets and three thresholds."""
+    """Choose validation weights and threshold with coverage-first ranking."""
     results: list[dict[str, object]] = []
+    pattern_vectors = np.vstack(patterns["centroid_z"].map(_decode_vector))
+    row_vectors = np.vstack(validation_rows["features_z"].map(_decode_vector))
     for name, weights in WEIGHT_PRESETS.items():
+        distances = pairwise_weighted_distances(
+            pattern_vectors,
+            row_vectors,
+            weights,
+        )
         for threshold in SIMILARITY_THRESHOLDS:
-            metrics, _ = backtest_patterns(patterns, validation_rows, weights, threshold)
-            results.append(
-                {
-                    "weight_preset": name,
-                    "weights": list(weights),
-                    "similarity_threshold": float(threshold),
-                    **_parameter_summary(metrics),
-                }
+            metrics = _pattern_metrics_from_distances(
+                patterns,
+                validation_rows,
+                distances,
+                threshold,
             )
-    search = pd.DataFrame(results).sort_values(
-        [
-            "parameter_set_score",
-            "mean_accuracy",
-            "total_occurrence",
-            "similarity_threshold",
-        ],
-        ascending=[False, False, False, True],
-        kind="stable",
-    )
+            result = {
+                "weight_preset": name,
+                "weights": list(weights),
+                "similarity_threshold": float(threshold),
+                **_parameter_summary(metrics),
+            }
+            if cluster_distance_threshold is not None:
+                result["cluster_distance_threshold"] = float(
+                    cluster_distance_threshold
+                )
+            results.append(result)
+    search = _rank_parameter_search(pd.DataFrame(results))
     best = search.iloc[0].to_dict()
     best["search_results"] = search.to_dict("records")
     return best
@@ -416,15 +491,11 @@ def select_top_patterns(
             & ranked["accuracy"].ge(MIN_ACCURACY)
         ]
         if len(qualified) < 10:
-            warnings.warn(
-                f"Only {len(qualified)} qualified {direction} patterns; filling by rank",
-                RuntimeWarning,
-                stacklevel=2,
+            raise ValueError(
+                f"Only {len(qualified)} qualified {direction} patterns; "
+                "at least 10 are required"
             )
-        candidates = pd.concat(
-            [qualified, ranked.loc[~ranked["pattern_id"].isin(qualified["pattern_id"])]],
-            ignore_index=True,
-        )
+        candidates = qualified.reset_index(drop=True)
         direction_selected: list[pd.Series] = []
         for _, candidate in candidates.iterrows():
             vector = _decode_vector(candidate["centroid_z"])
@@ -540,14 +611,50 @@ def analyze_project(project_root: Path) -> dict[str, object]:
             len(stocks),
         )
     feature_rows = combine_feature_stocks(stocks)
-    scaler, patterns = discover_patterns(feature_rows)
-    validation = evaluation_rows(
-        feature_rows,
-        scaler,
-        VALIDATION_START,
-        VALIDATION_END,
+    candidate_sets: dict[
+        float,
+        tuple[StandardScaler, pd.DataFrame, pd.DataFrame],
+    ] = {}
+    search_parts: list[pd.DataFrame] = []
+    for cluster_distance_threshold in CLUSTER_DISTANCE_THRESHOLDS:
+        logger.info(
+            "Searching cluster distance threshold %.2f",
+            cluster_distance_threshold,
+        )
+        candidate_scaler, candidate_patterns = discover_patterns(
+            feature_rows,
+            cluster_distance_threshold,
+        )
+        candidate_validation = evaluation_rows(
+            feature_rows,
+            candidate_scaler,
+            VALIDATION_START,
+            VALIDATION_END,
+        )
+        candidate_best = choose_parameters(
+            candidate_patterns,
+            candidate_validation,
+            cluster_distance_threshold,
+        )
+        candidate_sets[float(cluster_distance_threshold)] = (
+            candidate_scaler,
+            candidate_patterns,
+            candidate_validation,
+        )
+        search_parts.append(pd.DataFrame(candidate_best["search_results"]))
+
+    search_results = _rank_parameter_search(
+        pd.concat(search_parts, ignore_index=True)
     )
-    best = choose_parameters(patterns, validation)
+    best = search_results.iloc[0].to_dict()
+    cluster_distance_threshold = float(best["cluster_distance_threshold"])
+    scaler, patterns, validation = candidate_sets[cluster_distance_threshold]
+    if not bool(best["has_ten_each"]):
+        raise ValueError(
+            "Validation found fewer than 10 qualified patterns per direction; "
+            f"best configuration has {int(best['qualified_bullish_patterns'])} "
+            f"bullish and {int(best['qualified_bearish_patterns'])} bearish"
+        )
     weights = np.asarray(best["weights"], dtype=float)
     threshold = float(best["similarity_threshold"])
     metrics, _ = backtest_patterns(patterns, validation, weights, threshold)
@@ -555,7 +662,6 @@ def analyze_project(project_root: Path) -> dict[str, object]:
 
     result_dir = root / "data" / "results"
     _invalidate_test_outputs(result_dir)
-    search_results = pd.DataFrame(best.get("search_results", []))
     _write_csv(patterns, result_dir / "all_patterns.csv")
     _write_csv(search_results, result_dir / "validation_results.csv")
     _write_csv(
@@ -581,6 +687,7 @@ def analyze_project(project_root: Path) -> dict[str, object]:
         },
         "weight_preset": best["weight_preset"],
         "weights": weights.tolist(),
+        "cluster_distance_threshold": cluster_distance_threshold,
         "similarity_threshold": threshold,
         "patterns": selected.to_dict("records"),
     }
@@ -591,6 +698,7 @@ def analyze_project(project_root: Path) -> dict[str, object]:
         "discovery_patterns": len(patterns),
         "selected_patterns": len(selected),
         "weight_preset": str(best["weight_preset"]),
+        "cluster_distance_threshold": cluster_distance_threshold,
         "similarity_threshold": threshold,
     }
     logger.info("Analysis complete: %s", summary)

@@ -4,7 +4,7 @@
 
 **Goal:** Select candlestick patterns with real validation coverage while preserving the 2026 holdout boundary.
 
-**Architecture:** Expand configuration grids, pass clustering distance explicitly through discovery, reuse each weighted distance matrix across all similarity thresholds, and rank parameter combinations by qualified coverage before profit. Final selection admits only patterns meeting `occurrence >= 5` and `accuracy >= 0.55`.
+**Architecture:** Expand configuration grids, pass clustering distance explicitly through discovery, reuse each weighted distance matrix across all similarity thresholds, and rank parameter combinations by qualified coverage before profit. Final selection admits only patterns meeting `occurrence >= 3` and `accuracy >= 0.55`.
 
 **Tech Stack:** Python 3.11+, pandas, NumPy, scikit-learn, pytest
 
@@ -27,9 +27,9 @@ def test_match_coverage_search_configuration():
         SIMILARITY_THRESHOLDS,
     )
 
-    assert SIMILARITY_THRESHOLDS == tuple(round(0.4 + index * 0.1, 1) for index in range(11))
+    assert SIMILARITY_THRESHOLDS == tuple(round(0.4 + index * 0.1, 1) for index in range(17))
     assert CLUSTER_DISTANCE_THRESHOLDS == (1.0, 1.25, 1.5, 2.0)
-    assert MIN_OCCURRENCES == 5
+    assert MIN_OCCURRENCES == 3
     assert MIN_ACCURACY == pytest.approx(0.55)
 ```
 
@@ -41,10 +41,10 @@ Expected: FAIL because `CLUSTER_DISTANCE_THRESHOLDS` is absent and the existing 
 - [ ] **Step 3: Implement the constants**
 
 ```python
-SIMILARITY_THRESHOLDS = (0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4)
+SIMILARITY_THRESHOLDS = (0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0)
 CLUSTER_DISTANCE_THRESHOLDS = (1.0, 1.25, 1.5, 2.0)
 CLUSTER_DISTANCE_THRESHOLD = CLUSTER_DISTANCE_THRESHOLDS[0]
-MIN_OCCURRENCES = 5
+MIN_OCCURRENCES = 3
 MIN_ACCURACY = 0.55
 ```
 
@@ -207,4 +207,3 @@ Expected: exit code 0 and refreshed `test_2026_*` outputs.
 - [ ] **Step 5: Inspect output coverage**
 
 Read `validation_results.csv`, `top10_bullish.csv`, `top10_bearish.csv`, and `test_2026_pattern_metrics.csv`. Confirm selected patterns meet the qualification rules and report the number of 2026 matches without using that number to change parameters.
-

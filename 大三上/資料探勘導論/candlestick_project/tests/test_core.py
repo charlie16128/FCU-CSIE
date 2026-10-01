@@ -44,6 +44,21 @@ def test_fixed_universes_have_assignment_sizes():
     assert set(TEST_TICKERS) <= set(STOCK_TICKERS)
 
 
+def test_match_coverage_search_configuration():
+    from config import (
+        CLUSTER_DISTANCE_THRESHOLDS,
+        MIN_ACCURACY,
+        MIN_OCCURRENCES,
+        SIMILARITY_THRESHOLDS,
+    )
+
+    expected_thresholds = tuple(round(0.4 + index * 0.1, 1) for index in range(17))
+    assert SIMILARITY_THRESHOLDS == expected_thresholds
+    assert CLUSTER_DISTANCE_THRESHOLDS == (1.0, 1.25, 1.5, 2.0)
+    assert MIN_OCCURRENCES == 3
+    assert MIN_ACCURACY == pytest.approx(0.55)
+
+
 def test_clean_ohlcv_excludes_corporate_action_neighborhood():
     cleaned, summary = clean_ohlcv(sample_ohlcv())
     action_position = cleaned.index.get_loc(pd.Timestamp("2025-01-08"))
@@ -126,7 +141,7 @@ def test_weighted_distance_and_threshold_rules():
     assert is_match(0.8, 0.8)
 
 
-def test_parameter_score_includes_both_directions():
+def test_parameter_summary_only_uses_qualified_patterns():
     metrics = pd.DataFrame(
         [
             {
@@ -148,29 +163,130 @@ def test_parameter_score_includes_both_directions():
 
     summary = analysis._parameter_summary(metrics)
 
-    assert summary["parameter_set_score"] == pytest.approx(0.05)
     assert summary["qualified_patterns"] == 1
+    assert summary["qualified_bullish_patterns"] == 1
+    assert summary["qualified_bearish_patterns"] == 0
+    assert summary["min_qualified_patterns"] == 0
+    assert summary["has_ten_each"] == 0
+    assert summary["total_occurrence"] == 20
 
 
-def test_parameter_score_fills_each_direction_to_top_ten():
+def test_parameter_search_ranking_prefers_qualified_coverage():
+    search = pd.DataFrame(
+        [
+            {
+                "weight_preset": "high-profit-low-coverage",
+                "similarity_threshold": 0.6,
+                "cluster_distance_threshold": 1.0,
+                "has_ten_each": 0,
+                "min_qualified_patterns": 1,
+                "qualified_patterns": 2,
+                "total_occurrence": 10,
+                "parameter_set_score": 0.50,
+                "mean_accuracy": 1.0,
+            },
+            {
+                "weight_preset": "adequate-coverage",
+                "similarity_threshold": 1.2,
+                "cluster_distance_threshold": 1.5,
+                "has_ten_each": 1,
+                "min_qualified_patterns": 10,
+                "qualified_patterns": 20,
+                "total_occurrence": 150,
+                "parameter_set_score": 0.08,
+                "mean_accuracy": 0.65,
+            },
+        ]
+    )
+
+    ranked = analysis._rank_parameter_search(search)
+
+    assert ranked.iloc[0]["weight_preset"] == "adequate-coverage"
+
+
+def test_pattern_metrics_from_precomputed_distances():
+    patterns = pd.DataFrame(
+        {
+            "pattern_id": ["BULL-001", "BEAR-001"],
+            "direction": ["bullish", "bearish"],
+        }
+    )
+    rows = pd.DataFrame({"return_3d": [0.08, -0.07]})
+    distances = np.asarray([[0.5, 1.2], [1.1, 0.6]])
+
+    strict = analysis._pattern_metrics_from_distances(
+        patterns, rows, distances, threshold=0.8
+    )
+    loose = analysis._pattern_metrics_from_distances(
+        patterns, rows, distances, threshold=1.2
+    )
+
+    assert strict["occurrence_count"].tolist() == [1, 1]
+    assert strict["success_count"].tolist() == [1, 1]
+    assert loose["occurrence_count"].tolist() == [2, 2]
+
+
+def test_select_top_patterns_rejects_unqualified_fillers():
     records = []
-    for direction, qualified_profit in (("bullish", 0.20), ("bearish", 0.10)):
+    metrics = []
+    for direction in ("bullish", "bearish"):
+        prefix = "BULL" if direction == "bullish" else "BEAR"
         for index in range(10):
+            pattern_id = f"{prefix}-{index:03d}"
             records.append(
                 {
-                    "pattern_id": f"{direction}-{index}",
+                    "pattern_id": pattern_id,
                     "direction": direction,
-                    "occurrence_count": 20 if index == 0 else 2,
-                    "accuracy": 0.8 if index == 0 else 0.4,
-                    "average_directional_profit": (
-                        qualified_profit if index == 0 else 0.0
-                    ),
+                    "centroid_z": [float(index)] * 10,
+                }
+            )
+            metrics.append(
+                {
+                    "pattern_id": pattern_id,
+                    "direction": direction,
+                    "occurrence_count": 3 if index < 9 else 2,
+                    "accuracy": 0.60,
+                    "average_directional_profit": 0.05,
                 }
             )
 
-    summary = analysis._parameter_summary(pd.DataFrame(records))
+    with pytest.raises(ValueError, match="9 qualified bullish"):
+        analysis.select_top_patterns(
+            pd.DataFrame(metrics), pd.DataFrame(records), [1.0] * 10
+        )
 
-    assert summary["parameter_set_score"] == pytest.approx(0.015)
+
+def test_discovery_passes_cluster_distance_to_both_directions(monkeypatch):
+    calls: list[tuple[str, float]] = []
+
+    def fake_cluster(candidates, direction, scaler, cluster_distance_threshold):
+        calls.append((direction, cluster_distance_threshold))
+        return []
+
+    monkeypatch.setattr(analysis, "_cluster_direction", fake_cluster)
+    feature_rows = pd.DataFrame(
+        {
+            "ticker": ["UP.TW", "DOWN.TW"],
+            "date": [pd.Timestamp("2023-01-03"), pd.Timestamp("2023-01-04")],
+            "return_3d_date": [
+                pd.Timestamp("2023-01-06"),
+                pd.Timestamp("2023-01-09"),
+            ],
+            "return_3d": [0.08, -0.08],
+            "pattern_eligible": [True, True],
+            **{
+                name: [float(index), float(index + 1)]
+                for index, name in enumerate(FEATURE_COLUMNS)
+            },
+        }
+    )
+
+    with pytest.raises(ValueError, match="Discovery found no"):
+        discover_patterns(feature_rows, cluster_distance_threshold=1.5)
+
+    assert calls == [("bullish", 1.5), ("bearish", 1.5)]
+
+
 
 
 def test_conflicts_are_marked_but_excluded_from_trade_metrics():
@@ -293,6 +409,8 @@ def test_discovery_scaler_ignores_2026_rows():
 
 
 def test_analyze_project_writes_locked_model(monkeypatch, tmp_path: Path):
+    from config import CLUSTER_DISTANCE_THRESHOLDS
+
     feature_rows = pd.DataFrame(
         {
             "ticker": ["TEST.TW"],
@@ -326,6 +444,7 @@ def test_analyze_project_writes_locked_model(monkeypatch, tmp_path: Path):
     stale_result = tmp_path / "data/results/test_2026_pattern_metrics.csv"
     stale_result.parent.mkdir(parents=True)
     stale_result.write_text("pattern_id,test_accuracy\nOLD,1.0\n", encoding="utf-8")
+    searched_cluster_thresholds: list[float] = []
 
     monkeypatch.setattr(
         analysis,
@@ -333,7 +452,11 @@ def test_analyze_project_writes_locked_model(monkeypatch, tmp_path: Path):
         lambda path, tickers=None, logger=None: {"TEST.TW": sample_ohlcv()},
     )
     monkeypatch.setattr(analysis, "combine_feature_stocks", lambda stocks: feature_rows)
-    monkeypatch.setattr(analysis, "discover_patterns", lambda rows: (scaler, patterns))
+    def fake_discover(rows, cluster_distance_threshold):
+        searched_cluster_thresholds.append(cluster_distance_threshold)
+        return scaler, patterns
+
+    monkeypatch.setattr(analysis, "discover_patterns", fake_discover)
     monkeypatch.setattr(
         analysis,
         "evaluation_rows",
@@ -341,16 +464,27 @@ def test_analyze_project_writes_locked_model(monkeypatch, tmp_path: Path):
             features_z=[[0.0] * 10]
         ),
     )
-    monkeypatch.setattr(
-        analysis,
-        "choose_parameters",
-        lambda pattern_rows, validation: {
+    def fake_choose_parameters(
+        pattern_rows, validation, cluster_distance_threshold
+    ):
+        result = {
             "weight_preset": "equal",
             "weights": [1.0] * 10,
             "similarity_threshold": 0.8,
-            "search_results": [],
-        },
-    )
+            "cluster_distance_threshold": cluster_distance_threshold,
+            "has_ten_each": 1,
+            "min_qualified_patterns": 10,
+            "qualified_patterns": 20,
+            "qualified_bullish_patterns": 10,
+            "qualified_bearish_patterns": 10,
+            "total_occurrence": 400,
+            "parameter_set_score": 0.06,
+            "mean_accuracy": 0.75,
+        }
+        result["search_results"] = [result.copy()]
+        return result
+
+    monkeypatch.setattr(analysis, "choose_parameters", fake_choose_parameters)
     monkeypatch.setattr(
         analysis,
         "backtest_patterns",
@@ -368,10 +502,16 @@ def test_analyze_project_writes_locked_model(monkeypatch, tmp_path: Path):
     summary = analysis.analyze_project(tmp_path)
 
     assert summary["selected_patterns"] == 20
+    assert summary["cluster_distance_threshold"] == 1.0
+    assert searched_cluster_thresholds == list(CLUSTER_DISTANCE_THRESHOLDS)
     assert (tmp_path / "data/results/final_patterns.json").exists()
     assert (tmp_path / "data/results/top10_bullish.csv").exists()
     assert (tmp_path / "data/results/top10_bearish.csv").exists()
     assert not stale_result.exists()
+    model = json.loads(
+        (tmp_path / "data/results/final_patterns.json").read_text(encoding="utf-8")
+    )
+    assert model["cluster_distance_threshold"] == 1.0
 
 
 def test_final_test_requires_all_fixed_tickers(monkeypatch, tmp_path: Path):
