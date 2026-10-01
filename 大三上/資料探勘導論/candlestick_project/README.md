@@ -1,8 +1,14 @@
-# Candlestick Patterns Discovering
+# K 線型態探索作業
 
-本專案依照 `作業一.md` 的建議方法，針對固定的臺灣 50 成分股完成 K 線型態探索、驗證期參數搜尋、Top 10 鎖定、2026 年樣本外測試、結果圖表與 Tkinter GUI。
+本專案使用 `yfinance` 下載固定 50 檔臺灣股票資料，依老師指定的 10 個特徵找出看漲與看跌 K 線型態，再以 2026 年資料進行樣本外測試。
 
-目前儲存庫包含完整可執行程式與不需網路的合成資料測試；尚未執行正式 50 檔下載、完整 Grid Search 或正式績效計算，因此不含虛構的市場結果。
+程式刻意維持精簡，主要只有五個 Python 檔案：
+
+- `config.py`：股票、日期與少量參數。
+- `data_loader.py`：下載與清理資料。
+- `kline_analysis.py`：特徵、相似度、回測與圖表。
+- `gui.py`：顯示已產生的結果。
+- `main.py`：執行入口。
 
 ## 安裝
 
@@ -16,49 +22,61 @@ python -m pip install -r requirements.txt
 
 Tkinter 由 Windows 官方 Python 安裝程式提供，不是 pip 套件。
 
-## 時間切分與資料洩漏防護
-
-- 2018-01-01 至 2023-12-31：fit scaler、探索候選型態與聚類。
-- 2024-01-01 至 2025-12-31：搜尋五組群組權重與相似度門檻，選出 bullish、bearish 各 10 個 Pattern。
-- 2026-01-01 至 2026-12-31：只用鎖定模型進行最終樣本外測試。
-
-2026 資料不會參與 scaler、候選探索、聚類、參數搜尋、資格門檻放寬、去重門檻或 Top 10 選取。
-
 ## 執行方式
 
-每個階段都能獨立執行：
+依序執行：
 
 ```powershell
 python main.py --download
-python main.py --prepare
-python main.py --train
-python main.py --validate
+python main.py --analyze
 python main.py --test
 python main.py --gui
+```
+
+也可以一次完成前三個資料階段：
+
+```powershell
 python main.py --all
 ```
 
-- `--download`：下載未調整 OHLCV 與 corporate actions。
-- `--prepare`：清理資料、排除公司行動影響區間並計算 10 維特徵。
-- `--train`：只用 2018–2023 資料建立 scaler、候選與聚類 centroid。
-- `--validate`：只用 2024–2025 資料搜尋參數並鎖定 Top 10。
-- `--test`：只用鎖定模型評估 2026 測試股票並產生五張圖。
-- `--gui`：唯讀載入既有 Top 10 與測試結果，不會觸發訓練。
-- `--all`：依序執行五個資料階段，不會自動開啟 GUI。
+- `--download`：下載 50 檔未調整 OHLCV、股利與股票分割資料。
+- `--analyze`：清理資料、計算特徵、選參數並輸出看漲/看跌 Top 10。
+- `--test`：使用鎖定結果測試固定 10 檔股票的 2026 資料。
+- `--gui`：唯讀顯示既有結果，不會重新下載或分析。
 
-正式設定共有 `4^5 = 1024` 組權重與 11 個相似度門檻，也就是 11,264 組參數組合；在 50 檔股票上執行可能需要較長時間。
+## 分析流程
+
+```text
+yfinance 下載
+→ 清理資料與排除除權息日期
+→ 計算老師指定的 10 維特徵
+→ 2018–2023 找候選並聚類
+→ 2024–2025 比較少量權重與門檻
+→ 選出看漲與看跌 Top 10
+→ 2026 固定 10 檔股票測試
+→ CSV、JSON、圖表與 GUI
+```
+
+時間切分如下：
+
+- 2018-01-01 至 2023-12-31：fit scaler、探索候選型態與聚類。
+- 2024-01-01 至 2025-12-31：比較三組容易解釋的權重與三個相似度門檻，選出 bullish、bearish 各 10 個 Pattern。
+- 2026-01-01 至 2026-12-31：只用鎖定模型進行最終樣本外測試。
+
+2026 資料不會參與 scaler、候選探索、聚類、權重或門檻選擇，也不會影響 Top 10。
 
 ## 資料處理規則
 
 原始未調整的 `Open/High/Low/Close/Volume`、`Adj Close`、`Dividends` 與 `Stock Splits` 儲存在 `data/raw`。程式不會對價格做 forward fill，並排除 corporate action 當日、前一交易日與後三交易日。
 
-主要輸出位置：
+主要輸出：
 
-- `data/processed/`：清理後資料與 10 維特徵。
-- `data/results/`：候選、Pattern、Validation、Top 10 與 2026 統計。
-- `models/`：scaler、最佳參數與鎖定的最終 Pattern。
-- `outputs/figures/`：作業要求的五張 PNG。
-- `logs/`：每次執行的記錄與放寬門檻警告。
+- `data/raw/`：每檔股票一個原始 CSV。
+- `data/results/final_patterns.json`：鎖定的 scaler、權重、門檻與 Top 10。
+- `data/results/top10_bullish.csv`、`top10_bearish.csv`。
+- `data/results/test_2026_*.csv/json`：2026 測試結果。
+- `outputs/figures/`：Top 10 與 2026 比較圖。
+- `logs/latest.log`：下載、資料不足與分析訊息。
 
 單一股票下載或處理失敗時會記錄錯誤並繼續其他股票；缺少前置產物時會提示應先執行的階段。
 
@@ -66,11 +84,11 @@ python main.py --all
 
 ```powershell
 python -m pytest -q
-python -m compileall -q src main.py
+python -m compileall -q main.py config.py data_loader.py kline_analysis.py gui.py
 python main.py --help
 ```
 
-測試完全使用合成資料，不需要網路連線，也不會開啟 GUI 視窗。
+測試不需要網路連線，也不會開啟 GUI 視窗。
 
 ## 投資結果限制
 

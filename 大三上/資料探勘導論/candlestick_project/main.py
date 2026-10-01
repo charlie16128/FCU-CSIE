@@ -1,26 +1,36 @@
+"""Command-line entry point for the simplified candlestick assignment."""
+
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 from collections.abc import Sequence
+from pathlib import Path
 
-from src import gui, pipeline
+from data_loader import download_project
+from gui import launch_gui
+from kline_analysis import analyze_project, test_project
 
 
 def parser() -> argparse.ArgumentParser:
     value = argparse.ArgumentParser(
-        description="Candlestick pattern discovery pipeline"
+        description="Discover and test candlestick patterns"
     )
-    value.add_argument("--download", action="store_true", help="Download raw OHLCV")
-    value.add_argument("--prepare", action="store_true", help="Clean and build features")
-    value.add_argument("--train", action="store_true", help="Discover and cluster patterns")
-    value.add_argument("--validate", action="store_true", help="Search and lock Top 10")
-    value.add_argument("--test", action="store_true", help="Run locked 2026 evaluation")
-    value.add_argument("--gui", action="store_true", help="Open the read-only explorer")
+    value.add_argument("--download", action="store_true", help="Download 50 stocks")
+    value.add_argument(
+        "--analyze",
+        action="store_true",
+        help="Build features and select bullish/bearish Top 10",
+    )
+    value.add_argument(
+        "--test",
+        action="store_true",
+        help="Evaluate the locked patterns on fixed 2026 stocks",
+    )
+    value.add_argument("--gui", action="store_true", help="Open saved results")
     value.add_argument(
         "--all",
         action="store_true",
-        help="Run all data stages in order (does not open GUI)",
+        help="Run download, analysis, and 2026 test in order",
     )
     return value
 
@@ -30,20 +40,20 @@ def run(
     *,
     project_root: Path | None = None,
 ) -> int:
-    args = parser().parse_args(argv)
+    command = parser()
+    args = command.parse_args(argv)
     root = (project_root or Path(__file__).resolve().parent).resolve()
+    if not any((args.download, args.analyze, args.test, args.gui, args.all)):
+        command.print_help()
+        return 0
     if args.all or args.download:
-        pipeline.download_data(root)
-    if args.all or args.prepare:
-        pipeline.prepare_data(root)
-    if args.all or args.train:
-        pipeline.train_patterns(root)
-    if args.all or args.validate:
-        pipeline.validate_patterns(root)
+        print(download_project(root))
+    if args.all or args.analyze:
+        print(analyze_project(root))
     if args.all or args.test:
-        pipeline.test_patterns(root)
+        print(test_project(root))
     if args.gui:
-        gui.launch_gui(root)
+        launch_gui(root)
     return 0
 
 
