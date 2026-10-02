@@ -95,23 +95,23 @@ public final class RacePanel extends JPanel {
     }
 
     private void drawLaneLabel(Graphics2D g2, HorseSnapshot horse, int id, int laneY, int laneHeight) {
-        g2.setFont(uiFont(Font.BOLD, laneHeight < 46 ? 13 : 15));
+        boolean compact = laneHeight < 46;
+        g2.setFont(uiFont(Font.BOLD, compact ? 12 : 15));
         g2.setColor(new Color(39, 53, 76));
-        g2.drawString(id + " 號馬", 20, laneY + Math.max(17, laneHeight / 2));
+        int titleBaseline = laneY + (compact ? 15 : Math.max(17, laneHeight / 2));
+        g2.drawString(id + " 號馬", 20, titleBaseline);
 
-        if (laneHeight >= 46) {
-            g2.setFont(uiFont(Font.PLAIN, 11));
-            g2.setColor(new Color(88, 102, 126));
-            String detail;
-            if (horse == null) {
-                detail = "等待起跑";
-            } else if (horse.isFinished()) {
-                detail = "已完賽";
-            } else {
-                detail = "體力 " + horse.getStaminaRemaining() + "/" + horse.getInitialStamina();
-            }
-            g2.drawString(detail, 20, laneY + laneHeight - 9);
+        g2.setFont(uiFont(Font.PLAIN, compact ? 10 : 11));
+        g2.setColor(new Color(88, 102, 126));
+        String detail;
+        if (horse == null) {
+            detail = "等待起跑";
+        } else if (horse.isFinished()) {
+            detail = "已完賽";
+        } else {
+            detail = "體力 " + horse.getStaminaRemaining() + "/" + horse.getInitialStamina();
         }
+        g2.drawString(detail, 20, laneY + laneHeight - (compact ? 6 : 9));
     }
 
     private void drawFinishLine(Graphics2D g2, int x, int y, int height) {
@@ -190,4 +190,3 @@ public final class RacePanel extends JPanel {
         return new Font("Microsoft JhengHei", style, size);
     }
 }
-

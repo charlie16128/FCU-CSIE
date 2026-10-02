@@ -14,6 +14,7 @@ public final class ScreenshotGenerator {
         final Path outputDirectory = args.length == 0
                 ? Paths.get("screenshots").toAbsolutePath()
                 : Paths.get(args[0]).toAbsolutePath();
+        final int horseCount = args.length < 2 ? 5 : Integer.parseInt(args[1]);
         final AtomicReference<RaceFrame> frameReference = new AtomicReference<RaceFrame>();
 
         SwingUtilities.invokeAndWait(new Runnable() {
@@ -26,10 +27,15 @@ public final class ScreenshotGenerator {
 
         final RaceFrame frame = frameReference.get();
         try {
+            SwingUtilities.invokeAndWait(new Runnable() {
+                @Override public void run() {
+                    frame.setHorseCountForCapture(horseCount);
+                }
+            });
             capture(frame, outputDirectory.resolve("01-ready.png"));
             SwingUtilities.invokeAndWait(new Runnable() {
                 @Override public void run() {
-                    frame.startRaceForCapture(5);
+                    frame.startRaceForCapture(horseCount);
                 }
             });
 
@@ -45,7 +51,7 @@ public final class ScreenshotGenerator {
 
             waitUntil(new BooleanSupplier() {
                 @Override public boolean getAsBoolean() {
-                    return !frame.isRaceRunningForCapture();
+                    return frame.isRaceCompleteVisibleForCapture(horseCount);
                 }
             }, 15000L, "Timed out waiting for the completed race");
             flushEdt();

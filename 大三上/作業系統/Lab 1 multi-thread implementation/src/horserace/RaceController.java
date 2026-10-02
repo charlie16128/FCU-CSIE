@@ -13,6 +13,7 @@ public final class RaceController implements Horse.Events {
     public static final int MAX_HORSES = 10;
 
     private final Object lock = new Object();
+    private final Object eventPublicationLock = new Object();
     private final RaceListener listener;
     private final Random random;
     private final RaceParameters parameters;
@@ -92,6 +93,12 @@ public final class RaceController implements Horse.Events {
 
     @Override
     public void onHorseFinished(Horse horse) {
+        synchronized (eventPublicationLock) {
+            publishHorseFinished(horse);
+        }
+    }
+
+    private void publishHorseFinished(Horse horse) {
         List<Horse> horsesToBoost = Collections.emptyList();
         List<Integer> rankingCopy;
         int place;
@@ -99,6 +106,9 @@ public final class RaceController implements Horse.Events {
         boolean raceComplete;
 
         synchronized (lock) {
+            if (!running || !horses.contains(horse)) {
+                return;
+            }
             if (!finishedIds.add(horse.getId())) {
                 return;
             }
@@ -137,9 +147,15 @@ public final class RaceController implements Horse.Events {
 
     @Override
     public void onHorseFailed(Horse horse, Throwable failure) {
+        synchronized (eventPublicationLock) {
+            publishHorseFailure(horse, failure);
+        }
+    }
+
+    private void publishHorseFailure(Horse horse, Throwable failure) {
         List<Horse> horsesToStop;
         synchronized (lock) {
-            if (!running) {
+            if (!running || !horses.contains(horse)) {
                 return;
             }
             running = false;

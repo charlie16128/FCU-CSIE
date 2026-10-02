@@ -8,6 +8,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CopyOnWriteArrayList;
 import javax.swing.SwingUtilities;
 
 /** Pure-JDK tests. Run with: java -ea -cp out horserace.HorseRaceTest */
@@ -20,7 +21,9 @@ public final class HorseRaceTest {
         testEveryHorseUsesADistinctThreadAndSpeed();
         testStopTerminatesWorkers();
         testUiDispatchRunsOnEventDispatchThread();
-        System.out.println("PASS: 6 horse-race tests");
+        testFinishEventsArePublishedInRankingOrder();
+        testForeignCallbacksCannotContaminateActiveRace();
+        System.out.println("PASS: 8 horse-race tests");
     }
 
     private static void ensureAssertionsEnabled() {
@@ -133,6 +136,42 @@ public final class HorseRaceTest {
         assert ranOnEdt.get();
     }
 
+    private static void testFinishEventsArePublishedInRankingOrder() throws Exception {
+        BlockingFirstPlaceListener listener = new BlockingFirstPlaceListener();
+        RaceParameters fast = new RaceParameters(12.0, 1L, 5L, 200, 260);
+        RaceController controller = new RaceController(listener, new Random(29L), fast);
+        controller.startRace(3);
+
+        assert listener.firstPlaceEntered.await(2L, TimeUnit.SECONDS);
+        Thread.sleep(80L);
+        assert listener.publishedPlaces.size() == 1 : listener.publishedPlaces;
+        listener.releaseFirstPlace.countDown();
+
+        assert listener.raceFinished.await(2L, TimeUnit.SECONDS);
+        assert controller.awaitTermination(1000L);
+        assert listener.publishedPlaces.size() == 3 : listener.publishedPlaces;
+        assert listener.publishedPlaces.get(0) == 1;
+        assert listener.publishedPlaces.get(1) == 2;
+        assert listener.publishedPlaces.get(2) == 3;
+    }
+
+    private static void testForeignCallbacksCannotContaminateActiveRace() throws Exception {
+        LifecycleListener listener = new LifecycleListener();
+        RaceParameters slow = new RaceParameters(100000.0, 5L, 10L, 100, 200);
+        RaceController controller = new RaceController(listener, new Random(41L), slow);
+        controller.startRace(2);
+
+        Horse foreignHorse = new Horse(1, 150.0, 2, slow, new NoOpHorseEvents());
+        controller.onHorseFinished(foreignHorse);
+        controller.onHorseFailed(foreignHorse, new IllegalStateException("foreign failure"));
+
+        assert controller.isRunning();
+        assert controller.getRanking().isEmpty();
+        assert listener.failureEvents.get() == 0;
+        controller.stopRace();
+        assert controller.awaitTermination(1000L);
+    }
+
     private static boolean allThreadsStarted(List<HorseSnapshot> snapshots) {
         for (HorseSnapshot snapshot : snapshots) {
             if ("尚未啟動".equals(snapshot.getThreadName())) {
@@ -176,6 +215,46 @@ public final class HorseRaceTest {
         }
         @Override public void onRaceFailed(String message) {
             throw new AssertionError(message);
+        }
+    }
+
+    private static final class BlockingFirstPlaceListener implements RaceListener {
+        private final CountDownLatch firstPlaceEntered = new CountDownLatch(1);
+        private final CountDownLatch releaseFirstPlace = new CountDownLatch(1);
+        private final CountDownLatch raceFinished = new CountDownLatch(1);
+        private final List<Integer> publishedPlaces = new CopyOnWriteArrayList<Integer>();
+
+        @Override public void onRaceStarted(List<HorseSnapshot> horses) { }
+        @Override public void onFirstHorseFinished(int horseId) { }
+        @Override public void onHorseFinished(int horseId, int place, List<Integer> ranking) {
+            publishedPlaces.add(place);
+            if (place == 1) {
+                firstPlaceEntered.countDown();
+                try {
+                    releaseFirstPlace.await(2L, TimeUnit.SECONDS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(interrupted);
+                }
+            }
+        }
+        @Override public void onRaceFinished(List<Integer> ranking) {
+            raceFinished.countDown();
+        }
+        @Override public void onRaceFailed(String message) {
+            throw new AssertionError(message);
+        }
+    }
+
+    private static final class LifecycleListener implements RaceListener {
+        private final AtomicInteger failureEvents = new AtomicInteger();
+
+        @Override public void onRaceStarted(List<HorseSnapshot> horses) { }
+        @Override public void onFirstHorseFinished(int horseId) { }
+        @Override public void onHorseFinished(int horseId, int place, List<Integer> ranking) { }
+        @Override public void onRaceFinished(List<Integer> ranking) { }
+        @Override public void onRaceFailed(String message) {
+            failureEvents.incrementAndGet();
         }
     }
 }

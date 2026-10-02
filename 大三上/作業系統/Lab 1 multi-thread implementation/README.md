@@ -55,7 +55,7 @@ java -ea -cp out horserace.HorseRaceTest
 成功時會顯示：
 
 ```text
-PASS: 6 horse-race tests
+PASS: 8 horse-race tests
 ```
 
 ## 重新產生 GUI 截圖

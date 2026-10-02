@@ -40,7 +40,6 @@ public final class RaceFrame extends JFrame implements RaceListener {
     private static final Color NAVY = new Color(32, 45, 70);
     private static final Color TEXT = new Color(38, 50, 75);
     private static final Color MUTED = new Color(94, 108, 132);
-    private static final Color GREEN = new Color(31, 139, 87);
     private static final Color PALE_GREEN = new Color(232, 247, 239);
     private static final Color PALE_ORANGE = new Color(255, 247, 232);
 
@@ -59,6 +58,7 @@ public final class RaceFrame extends JFrame implements RaceListener {
     private final Timer repaintTimer;
     private volatile int displayedRankingCount;
     private volatile boolean displayedBoosting;
+    private volatile boolean displayedRaceComplete;
     private int raceNumber;
 
     public RaceFrame() {
@@ -92,8 +92,6 @@ public final class RaceFrame extends JFrame implements RaceListener {
         } catch (Exception ignored) {
             // The cross-platform Swing look and feel remains a safe fallback.
         }
-        UIManager.put("Button.disabledText", new Color(226, 245, 235));
-        UIManager.put("Button.disabledForeground", new Color(226, 245, 235));
     }
 
     private void buildInterface() {
@@ -157,8 +155,6 @@ public final class RaceFrame extends JFrame implements RaceListener {
 
         constraints.gridx = 2;
         startButton.setFont(uiFont(Font.BOLD, 14));
-        startButton.setForeground(Color.WHITE);
-        startButton.setBackground(GREEN);
         startButton.setFocusPainted(false);
         startButton.setPreferredSize(new Dimension(126, 33));
         controls.add(startButton, constraints);
@@ -233,6 +229,7 @@ public final class RaceFrame extends JFrame implements RaceListener {
         rankingItems.removeAll();
         displayedRankingCount = 0;
         displayedBoosting = false;
+        displayedRaceComplete = false;
         rankingItems.revalidate();
         rankingItems.repaint();
         raceNumberLabel.setText("第 " + raceNumber + " 場進行中");
@@ -254,7 +251,9 @@ public final class RaceFrame extends JFrame implements RaceListener {
     public void onFirstHorseFinished(final int horseId) {
         dispatchOnEdt(new Runnable() {
             @Override public void run() {
-                setStatus(horseId + " 號馬率先抵達！其餘馬匹已自動進入有限次 20% 加速模式。", true);
+                if (!displayedRaceComplete) {
+                    setStatus(horseId + " 號馬率先抵達！其餘馬匹已自動進入有限次 20% 加速模式。", true);
+                }
             }
         });
     }
@@ -273,6 +272,7 @@ public final class RaceFrame extends JFrame implements RaceListener {
         dispatchOnEdt(new Runnable() {
             @Override public void run() {
                 repaintTimer.stop();
+                displayedRaceComplete = true;
                 racePanel.setSnapshots(controller.getSnapshots());
                 updateRanking(ranking);
                 horseCountSpinner.setEnabled(true);
@@ -298,6 +298,9 @@ public final class RaceFrame extends JFrame implements RaceListener {
     }
 
     private void updateRanking(List<Integer> ranking) {
+        if (ranking.size() < displayedRankingCount) {
+            return;
+        }
         rankingItems.removeAll();
         displayedRankingCount = ranking.size();
         for (int index = 0; index < ranking.size(); index++) {
@@ -333,8 +336,16 @@ public final class RaceFrame extends JFrame implements RaceListener {
         startSelectedRace();
     }
 
+    void setHorseCountForCapture(int horseCount) {
+        horseCountSpinner.setValue(horseCount);
+    }
+
     boolean isRaceRunningForCapture() {
         return controller.isRunning();
+    }
+
+    boolean isRaceCompleteVisibleForCapture(int expectedHorseCount) {
+        return displayedRaceComplete && displayedRankingCount == expectedHorseCount;
     }
 
     int getFinishedCountForCapture() {
