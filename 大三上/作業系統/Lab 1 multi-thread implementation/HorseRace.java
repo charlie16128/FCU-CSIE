@@ -48,8 +48,35 @@ public final class HorseRace {
     private static final double FINISH_DISTANCE = 1000.0;
     private static final long TICK_MILLIS = 25L;
     private static final long BOOST_MILLIS = 1000L;
+    private static final double BOOST_MULTIPLIER = 1.20;
+    private static final double SLOW_ANIMATION_SPEED = 118.0;
+    private static final double FAST_ANIMATION_SPEED = 228.0;
+    private static final long SLOW_FRAME_MILLIS = 200L;
+    private static final long FAST_FRAME_MILLIS = 85L;
+    private static final int RUNNING_FRAME_COUNT = 3;
 
     private HorseRace() { }
+
+    static double currentSpeed(double baseSpeed, boolean boosting, boolean finished) {
+        return finished ? 0.0 : baseSpeed * (boosting ? BOOST_MULTIPLIER : 1.0);
+    }
+
+    static long animationFrameDurationMillis(double speed) {
+        double clamped = Math.max(SLOW_ANIMATION_SPEED,
+                Math.min(FAST_ANIMATION_SPEED, speed));
+        double ratio = (clamped - SLOW_ANIMATION_SPEED)
+                / (FAST_ANIMATION_SPEED - SLOW_ANIMATION_SPEED);
+        return Math.round(SLOW_FRAME_MILLIS
+                - ratio * (SLOW_FRAME_MILLIS - FAST_FRAME_MILLIS));
+    }
+
+    static int animationFrame(double speed, long nowMillis, boolean moving) {
+        if (!moving || speed <= 0.0) {
+            return 0;
+        }
+        return (int) ((nowMillis / animationFrameDurationMillis(speed))
+                % RUNNING_FRAME_COUNT);
+    }
 
     public static void main(String[] args) {
         try {
@@ -78,15 +105,17 @@ public final class HorseRace {
         final double progress;
         final int staminaRemaining;
         final int initialStamina;
+        final double currentSpeed;
         final boolean boosting;
         final boolean finished;
 
         HorseSnapshot(int id, double progress, int staminaRemaining, int initialStamina,
-                      boolean boosting, boolean finished) {
+                      double currentSpeed, boolean boosting, boolean finished) {
             this.id = id;
             this.progress = progress;
             this.staminaRemaining = staminaRemaining;
             this.initialStamina = initialStamina;
+            this.currentSpeed = currentSpeed;
             this.boosting = boosting;
             this.finished = finished;
         }
@@ -130,7 +159,7 @@ public final class HorseRace {
                     double seconds = Math.min(0.25,
                             (nowNanos - previousNanos) / 1_000_000_000.0);
                     previousNanos = nowNanos;
-                    double multiplier = boosting ? 1.20 : 1.0;
+                    double multiplier = boosting ? BOOST_MULTIPLIER : 1.0;
                     position = Math.min(FINISH_DISTANCE,
                             position + baseSpeed * multiplier * seconds);
 
@@ -179,13 +208,16 @@ public final class HorseRace {
         }
 
         HorseSnapshot snapshot() {
+            boolean isFinished = finished;
+            boolean isBoosting = !isFinished && boosting;
             return new HorseSnapshot(
                     id,
                     Math.max(0.0, Math.min(1.0, position / FINISH_DISTANCE)),
                     staminaRemaining,
                     initialStamina,
-                    boosting,
-                    finished
+                    currentSpeed(baseSpeed, isBoosting, isFinished),
+                    isBoosting,
+                    isFinished
             );
         }
     }
@@ -370,6 +402,13 @@ public final class HorseRace {
                 new Color(183, 121, 31), new Color(56, 161, 105),
                 new Color(184, 50, 128), new Color(74, 85, 104)
         };
+        private static final int[] BODY_BOUNCE = {0, 1, -1};
+        private static final int[] HEAD_BOB = {0, 1, -1};
+        private static final int[] TAIL_LIFT = {-2, 2, -5};
+        private static final int[][] HIND_LEGS = {{-3, -8}, {2, 0}, {4, 8}};
+        private static final int[][] REAR_LEGS = {{3, 7}, {-2, -1}, {-4, -8}};
+        private static final int[][] FORE_LEGS = {{4, 9}, {-2, 0}, {-4, -8}};
+        private static final int[][] FRONT_LEGS = {{-3, -7}, {2, 1}, {4, 8}};
 
         private volatile List<HorseSnapshot> snapshots = Collections.emptyList();
         private volatile int previewCount = 5;
@@ -415,6 +454,7 @@ public final class HorseRace {
             int laneHeight = Math.max(38, (height - 36) / count);
             int trackHeight = laneHeight * count;
             int top = Math.max(18, (height - trackHeight) / 2);
+            long animationTimeMillis = System.currentTimeMillis();
 
             for (int index = 0; index < count; index++) {
                 int laneY = top + index * laneHeight;
@@ -433,7 +473,7 @@ public final class HorseRace {
                 int x = startX + (int) Math.round(
                         (finishX - startX - horseWidth + 9) * progress);
                 drawHorse(g2, x, laneY + (laneHeight - 3) / 2,
-                        horseWidth, index, horse);
+                        horseWidth, index, horse, animationTimeMillis);
             }
             drawFinishLine(g2, finishX, top, trackHeight - 3);
         }
@@ -476,12 +516,17 @@ public final class HorseRace {
         }
 
         private void drawHorse(Graphics2D g2, int x, int centerY, int width,
-                               int colorIndex, HorseSnapshot horse) {
+                               int colorIndex, HorseSnapshot horse,
+                               long animationTimeMillis) {
             double scale = width / 52.0;
+            int frame = horse == null ? 0 : animationFrame(
+                    horse.currentSpeed, animationTimeMillis, !horse.finished);
+            int poseCenterY = centerY
+                    + (int) Math.round(BODY_BOUNCE[frame] * scale);
             int bodyW = (int) Math.round(29 * scale);
             int bodyH = (int) Math.round(15 * scale);
             int bodyX = x + (int) Math.round(7 * scale);
-            int bodyY = centerY - bodyH / 2;
+            int bodyY = poseCenterY - bodyH / 2;
             Color color = HORSE_COLORS[colorIndex % HORSE_COLORS.length];
 
             if (horse != null && horse.boosting) {
@@ -496,23 +541,34 @@ public final class HorseRace {
             g2.setColor(color.darker());
             g2.setStroke(new BasicStroke(Math.max(1f, (float) scale * 1.6f),
                     BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            g2.drawLine(bodyX + 3, bodyY + bodyH - 1,
-                    bodyX, centerY + (int) (12 * scale));
-            g2.drawLine(bodyX + bodyW - 6, bodyY + bodyH - 1,
-                    bodyX + bodyW - 2, centerY + (int) (12 * scale));
+            int legTop = bodyY + bodyH - (int) Math.round(2 * scale);
+            g2.setColor(color.darker().darker());
+            drawLeg(g2, bodyX + (int) Math.round(9 * scale), legTop,
+                    REAR_LEGS[frame][0], REAR_LEGS[frame][1], scale);
+            drawLeg(g2, bodyX + bodyW - (int) Math.round(9 * scale), legTop,
+                    FORE_LEGS[frame][0], FORE_LEGS[frame][1], scale);
+            g2.setColor(color.darker());
+            drawLeg(g2, bodyX + (int) Math.round(4 * scale), legTop,
+                    HIND_LEGS[frame][0], HIND_LEGS[frame][1], scale);
+            drawLeg(g2, bodyX + bodyW - (int) Math.round(4 * scale), legTop,
+                    FRONT_LEGS[frame][0], FRONT_LEGS[frame][1], scale);
+
+            int headOffsetY = (int) Math.round(HEAD_BOB[frame] * scale);
             g2.drawLine(bodyX + bodyW - 1, bodyY + 3,
-                    bodyX + bodyW + (int) (8 * scale), bodyY - (int) (6 * scale));
-            g2.drawLine(bodyX + 2, bodyY + 4, x, bodyY - (int) (2 * scale));
+                    bodyX + bodyW + (int) (8 * scale),
+                    bodyY - (int) (6 * scale) + headOffsetY);
+            g2.drawLine(bodyX + 2, bodyY + 4, x,
+                    bodyY + (int) Math.round(TAIL_LIFT[frame] * scale));
             g2.setColor(color);
             g2.fillOval(bodyX, bodyY, bodyW, bodyH);
             int head = (int) Math.round(11 * scale);
             g2.fillOval(bodyX + bodyW + (int) (5 * scale),
-                    bodyY - (int) (9 * scale), head, head);
+                    bodyY - (int) (9 * scale) + headOffsetY, head, head);
 
             g2.setColor(new Color(255, 255, 255, 225));
             int badge = Math.max(12, (int) Math.round(14 * scale));
             int badgeX = bodyX + bodyW / 2 - badge / 2;
-            int badgeY = centerY - badge / 2;
+            int badgeY = poseCenterY - badge / 2;
             g2.fillOval(badgeX, badgeY, badge, badge);
             g2.setColor(new Color(31, 41, 55));
             g2.setFont(font(Font.BOLD, Math.max(9, (int) Math.round(10 * scale))));
@@ -521,6 +577,16 @@ public final class HorseRace {
                     badgeX + (badge - g2.getFontMetrics().stringWidth(number)) / 2,
                     badgeY + (badge + g2.getFontMetrics().getAscent()
                             - g2.getFontMetrics().getDescent()) / 2);
+        }
+
+        private void drawLeg(Graphics2D g2, int hipX, int hipY,
+                             int kneeDx, int hoofDx, double scale) {
+            int kneeX = hipX + (int) Math.round(kneeDx * scale);
+            int kneeY = hipY + (int) Math.round(7 * scale);
+            int hoofX = hipX + (int) Math.round(hoofDx * scale);
+            int hoofY = hipY + (int) Math.round(14 * scale);
+            g2.drawLine(hipX, hipY, kneeX, kneeY);
+            g2.drawLine(kneeX, kneeY, hoofX, hoofY);
         }
 
         private void drawLightning(Graphics2D g2, int x, int y) {
