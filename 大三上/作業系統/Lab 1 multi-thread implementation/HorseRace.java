@@ -516,8 +516,8 @@ public final class HorseRace {
         }
 
         private void drawHorse(Graphics2D g2, int x, int centerY, int width,
-                               int colorIndex, HorseSnapshot horse,
-                               long animationTimeMillis) {
+                                int colorIndex, HorseSnapshot horse,
+                                long animationTimeMillis) {
             double scale = width / 52.0;
             int frame = horse == null ? 0 : animationFrame(
                     horse.currentSpeed, animationTimeMillis, !horse.finished);

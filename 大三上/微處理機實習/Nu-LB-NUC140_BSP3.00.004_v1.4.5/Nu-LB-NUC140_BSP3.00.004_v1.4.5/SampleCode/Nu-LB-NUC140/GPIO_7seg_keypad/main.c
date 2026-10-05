@@ -36,20 +36,21 @@ void Display_7seg(uint16_t value)
 	CLK_SysTickDelay(5000);
 }
 
-uint8_t studentID[8] = {13, 1, 3, 4, 9, 1, 1, 1}; //D1349111
-
-void Display_ID(int position)
+void Display_ERR(void)
 {
-    int j;
-    int index;
+    int i;
 
-    for(j = 0; j < 4; j++){
-        index = position + j;
-
+    for(i = 3; i >= 0; i--){
         CloseSevenSegment();
 
-        if(index >= 0 && index < 8){
-            ShowSevenSegment(3 - j, studentID[index]);
+        if(i == 2){
+            ShowSevenSegment(i, 14);
+        }
+        else if(i < 2){
+            ShowSevenSegment(i, 14);
+            PE2 = 1;
+            PE3 = 1;
+            PE5 = 1;
         }
 
         CLK_SysTickDelay(5000);
@@ -58,14 +59,12 @@ void Display_ID(int position)
 
 int main(void)
 {
+    int count = 0, mode = 0, current = 3;
+    uint8_t LED[4] = {0, 0, 0, 0}; // if 1000 leftest is seg rightest -> show 0001
+    uint8_t answer[4] = {4, 3, 2, 1};
     uint8_t key;
     uint8_t lastKey = 0;
-
-    int position = 0;
-    uint8_t finished = 0;
-
-    uint8_t blinkOn = 1;
-    uint8_t blinkCount = 0;
+    int i, j, flash, correct;
 
     SYS_Init();
     OpenSevenSegment();
@@ -74,49 +73,113 @@ int main(void)
     while(1){
         key = ScanKey();
 
-        if(key != 0 && lastKey == 0){
-            if(key == 5){ // init
-                position = 0;
-                finished = 0;
-                blinkOn = 1;
-                blinkCount = 0;
-            }
-            else if(finished == 0){
-                if(key == 4){
-                    position++;
+        if(mode == 0){
+            Display_7seg(0);
+
+            if(key == 1){
+                count++;
+
+                if(count >= 150){
+                    count = 0;
+                    current = 3;
+                    mode = 1;
                 }
-                else if(key == 6){
-                    position--;
+            }
+            else{
+                count = 0;
+            }
+        }
+
+        // input mode
+        else if(mode == 1){
+            if(key != 0 && lastKey == 0){
+                if(key == 4){
+                    current++;
+                    if(current > 3) current = 0;
                 }
 
-                if(position == 8 || position == -4){
-                    finished = 1;
-                    blinkOn = 0;
-                    blinkCount = 0;
+                if(key == 6){
+                    current--;
+                    if(current < 0) current = 3;
+                }
+
+                if(key == 2){
+                    if(LED[current] >= 9){
+                        LED[current] = 0;
+                    }
+                    else{
+                        LED[current]++;
+                    }
+                }
+
+                if(key == 8){
+                    if(LED[current] < 10 || LED[current] >= 15){
+                        LED[current] = 10;
+                    }
+                    else{
+                        LED[current]++;
+                    }
                 }
             }
+
+            for(i = 0; i <= 3; i++){
+                CloseSevenSegment();
+                ShowSevenSegment(i, LED[i]);
+                CLK_SysTickDelay(5000);
+            }
+            CloseSevenSegment();
+
+            if(key == 9){ //enter compare mode
+                count++;
+
+                if(count >= 150){
+                    count = 0;
+                    mode = 2;
+                }
+            }
+            else{
+                count = 0;
+            }
+        }
+
+        // compare mode
+        else if(mode == 2){
+            correct = 1;
+
+            for(i = 0; i < 4; i++){
+                if(LED[i] != answer[i]){
+                    correct = 0;
+                }
+            }
+
+            for(flash = 0; flash < 6; flash++){
+                for(j = 0; j < 25; j++){
+                    if(flash % 2 == 0){
+                        if(correct == 1){
+                            Display_7seg(7777);
+                        }
+                        else{
+                            Display_ERR();
+                        }
+                    }
+                    else{
+                        CloseSevenSegment();
+                        CLK_SysTickDelay(20000);
+                    }
+                }
+            }
+
+            CloseSevenSegment();
+
+            for(i = 0; i < 4; i++){
+                LED[i] = 0;
+            }
+
+            count = 0;
+            current = 3;
+            mode = 0;
         }
 
         lastKey = key;
-
-        if(finished == 0){
-            Display_ID(position);
-        }
-        else if(finished == 1){
-            if(blinkOn == 1){
-                Display_7seg(7777);
-            }
-            else{
-                CloseSevenSegment();
-                CLK_SysTickDelay(20000);
-            }
-						
-            blinkCount++;
-
-            if(blinkCount >= 25){ //wait
-                blinkCount = 0;
-                blinkOn = !blinkOn;
-            }
-        }
     }
 }

@@ -3,9 +3,9 @@
 <title>Static Call Graph - [.\obj\GPIO_7seg_keypad.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\obj\GPIO_7seg_keypad.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060960: Last Updated: Sun Oct 04 01:49:11 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060960: Last Updated: Sun Oct 04 15:56:07 2026
 <BR><P>
-<H3>Maximum Stack Usage =         92 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
+<H3>Maximum Stack Usage =        100 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
 main &rArr; SYS_Init &rArr; CLK_SetCoreClock &rArr; CLK_EnablePLL &rArr; __aeabi_uidivmod
 <P>
@@ -282,7 +282,7 @@ Global Symbols
 
 <P><STRONG><a name="[36]"></a>CloseSevenSegment</STRONG> (Thumb, 14 bytes, Stack size 0 bytes, seven_segment.o(i.CloseSevenSegment))
 <BR><BR>[Called By]<UL><LI><a href="#[26]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
-<LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_ID
+<LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_ERR
 <LI><a href="#[35]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_7seg
 </UL>
 
@@ -297,8 +297,8 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[26]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[39]"></a>Display_ID</STRONG> (Thumb, 44 bytes, Stack size 24 bytes, main.o(i.Display_ID))
-<BR><BR>[Stack]<UL><LI>Max Depth = 48<LI>Call Chain = Display_ID &rArr; ShowSevenSegment &rArr; __ARM_common_switch8
+<P><STRONG><a name="[39]"></a>Display_ERR</STRONG> (Thumb, 56 bytes, Stack size 24 bytes, main.o(i.Display_ERR))
+<BR><BR>[Stack]<UL><LI>Max Depth = 48<LI>Call Chain = Display_ERR &rArr; ShowSevenSegment &rArr; __ARM_common_switch8
 </UL>
 <BR>[Calls]<UL><LI><a href="#[37]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ShowSevenSegment
 <LI><a href="#[36]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;CloseSevenSegment
@@ -349,7 +349,8 @@ Global Symbols
 </UL>
 <BR>[Calls]<UL><LI><a href="#[3f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__ARM_common_switch8
 </UL>
-<BR>[Called By]<UL><LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_ID
+<BR>[Called By]<UL><LI><a href="#[26]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
+<LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_ERR
 <LI><a href="#[35]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_7seg
 </UL>
 
@@ -376,15 +377,16 @@ Global Symbols
 
 <P><STRONG><a name="[4b]"></a>__scatterload_zeroinit</STRONG> (Thumb, 14 bytes, Stack size unknown bytes, handlers.o(i.__scatterload_zeroinit), UNUSED)
 
-<P><STRONG><a name="[26]"></a>main</STRONG> (Thumb, 150 bytes, Stack size 8 bytes, main.o(i.main))
-<BR><BR>[Stack]<UL><LI>Max Depth = 92<LI>Call Chain = main &rArr; SYS_Init &rArr; CLK_SetCoreClock &rArr; CLK_EnablePLL &rArr; __aeabi_uidivmod
+<P><STRONG><a name="[26]"></a>main</STRONG> (Thumb, 306 bytes, Stack size 16 bytes, main.o(i.main))
+<BR><BR>[Stack]<UL><LI>Max Depth = 100<LI>Call Chain = main &rArr; SYS_Init &rArr; CLK_SetCoreClock &rArr; CLK_EnablePLL &rArr; __aeabi_uidivmod
 </UL>
-<BR>[Calls]<UL><LI><a href="#[40]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ScanKey
+<BR>[Calls]<UL><LI><a href="#[37]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ShowSevenSegment
+<LI><a href="#[40]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;ScanKey
 <LI><a href="#[3d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SYS_Init
 <LI><a href="#[3c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OpenSevenSegment
 <LI><a href="#[3a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;OpenKeyPad
 <LI><a href="#[36]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;CloseSevenSegment
-<LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_ID
+<LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_ERR
 <LI><a href="#[35]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_7seg
 <LI><a href="#[38]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;CLK_SysTickDelay
 </UL>
@@ -402,7 +404,7 @@ Local Symbols
 </UL>
 <P><STRONG><a name="[38]"></a>CLK_SysTickDelay</STRONG> (Thumb, 28 bytes, Stack size 0 bytes, main.o(i.CLK_SysTickDelay))
 <BR><BR>[Called By]<UL><LI><a href="#[26]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
-<LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_ID
+<LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_ERR
 <LI><a href="#[35]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Display_7seg
 </UL>
 <P>
