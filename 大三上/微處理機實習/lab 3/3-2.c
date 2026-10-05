@@ -31,40 +31,40 @@ void Display_7seg(uint16_t value)
 	ShowSevenSegment(0,digit); 
 	CLK_SysTickDelay(5000); 
 } 
- 
+
 int main(void) 
 { 
-		int num = 0; 
+	int num = 0; 
 
-		uint16_t i; 
-	 
-    SYS_Init(); 
- 
-    OpenSevenSegment(); 
-	  OpenKeyPad(); 
-		 
-		while(1) { 
-			i=ScanKey(); 
-			 
-			if(i >= 1 && i <= 6){ 
-				while(ScanKey() == i){
-					Display_7seg(num);
-				}
-				
-				if(num <= 1000){
-					num = num * 10 + i;
-				
-				}
-			}else if(i == 7){ 
-				while(ScanKey() == 7){
-					Display_7seg(num);
-				}
-				
-				if(num > 0){
-					num = num / 10;
-				}
+	uint16_t i; 
+
+	SYS_Init(); 
+
+	OpenSevenSegment(); 
+	OpenKeyPad(); 
+
+	while(1) { 
+		i=ScanKey(); 
+			
+		if(i >= 1 && i <= 6){ 
+			while(ScanKey() == i){
+				Display_7seg(num);
 			}
 			
-			Display_7seg(num);
-	  } 
+			if(num <= 1000){
+				num = num * 10 + i;
+			
+			}
+		}else if(i == 7){ 
+			while(ScanKey() == 7){
+				Display_7seg(num);
+			}
+			
+			if(num > 0){
+				num = num / 10;
+			}
+		}
+		
+		Display_7seg(num);
+	} 
 }

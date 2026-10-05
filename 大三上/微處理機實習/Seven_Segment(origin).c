@@ -24,14 +24,7 @@
 #define SEG_N14  0x13
 #define SEG_N15  0x33
 
-#define SEG_a    0xF7  //11110111
-#define SEG_b    0xEF  //11101111
-#define SEG_c    0xFE  //11111110
-#define SEG_d    0xDF  //11011111
-#define SEG_e    0xBF  //10111111
-#define SEG_f    0xFB  //11111011
-
-uint8_t SEG_BUF[22]={SEG_N0, SEG_N1, SEG_N2, SEG_N3, SEG_N4, SEG_N5, SEG_N6, SEG_N7, SEG_N8, SEG_N9, SEG_N10, SEG_N11, SEG_N12, SEG_N13, SEG_N14, SEG_N15, SEG_a, SEG_b, SEG_c, SEG_d, SEG_e, SEG_f}; 
+uint8_t SEG_BUF[16]={SEG_N0, SEG_N1, SEG_N2, SEG_N3, SEG_N4, SEG_N5, SEG_N6, SEG_N7, SEG_N8, SEG_N9, SEG_N10, SEG_N11, SEG_N12, SEG_N13, SEG_N14, SEG_N15}; 
 
 void OpenSevenSegment(void)
 {
@@ -51,10 +44,10 @@ void OpenSevenSegment(void)
 	GPIO_SetMode(PE, BIT5, GPIO_PMD_QUASI);
 	GPIO_SetMode(PE, BIT6, GPIO_PMD_QUASI);
 	GPIO_SetMode(PE, BIT7, GPIO_PMD_QUASI);
-	PE0=0;
-	PE1=0;
-	PE2=0;
-	PE3=0;	
+    PE0=0;
+    PE1=0;
+    PE2=0;
+	PE3=0;
 	PE4=0;
 	PE5=0;
 	PE6=0;
@@ -63,34 +56,34 @@ void OpenSevenSegment(void)
 
 void ShowSevenSegment(uint8_t no, uint8_t number)
 {
-  uint8_t temp,i;
+    uint8_t temp,i;   
 	temp=SEG_BUF[number];
 	
 	for(i=0;i<8;i++)
 	    {
 		if((temp&0x01)==0x01)		   		   
-			 switch(i) {
-				 case 0: PE0=1; break;
-				 case 1: PE1=1; break;
-				 case 2: PE2=1; break;
-				 case 3: PE3=1; break;
-				 case 4: PE4=1; break;
-				 case 5: PE5=1; break;
-				 case 6: PE6=1; break;
-				 case 7: PE7=1; break;
-			   }		
-		   else
-				 switch(i) {
-				 case 0: PE0=0; break;
-				 case 1: PE1=0; break;
-				 case 2: PE2=0; break;
-				 case 3: PE3=0; break;
-				 case 4: PE4=0; break;
-				 case 5: PE5=0; break;
-				 case 6: PE6=0; break;
-				 case 7: PE7=0; break;
-				 }	  
-		   temp=temp>>1;
+            switch(i) {
+                case 0: PE0=1; break;
+                case 1: PE1=1; break;
+                case 2: PE2=1; break;
+                case 3: PE3=1; break;
+                case 4: PE4=1; break;
+                case 5: PE5=1; break;
+                case 6: PE6=1; break;
+                case 7: PE7=1; break;
+            }		
+        else
+                switch(i) {
+                case 0: PE0=0; break;
+                case 1: PE1=0; break;
+                case 2: PE2=0; break;
+                case 3: PE3=0; break;
+                case 4: PE4=0; break;
+                case 5: PE5=0; break;
+                case 6: PE6=0; break;
+                case 7: PE7=0; break;
+                }	  
+        temp=temp>>1;
 		}
 			switch(no) {
 				case 0: PC4=1; break;
@@ -107,4 +100,3 @@ void CloseSevenSegment(void)
 	PC6=0;	
 	PC7=0;
 }
-

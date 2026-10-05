@@ -79,10 +79,10 @@ int main(void)
 	uint16_t i;
 	
     SYS_Init();
-		Init_EXTINT();
-		GPIO_SetMode(PC, BIT12, GPIO_MODE_OUTPUT); // idk what is this
+	Init_EXTINT();
+	GPIO_SetMode(PC, BIT12, GPIO_MODE_OUTPUT); // idk what is this
 	
     OpenSevenSegment();
 	
- 	  while(1);
+	while(1);
 }

@@ -11,7 +11,7 @@
 // display an integer on four 7-segment LEDs
 void Display_7seg(uint16_t value)
 {
-  uint8_t digit;
+	uint8_t digit;
 	digit = value / 1000;
 	CloseSevenSegment();
 	ShowSevenSegment(3,digit);
@@ -36,150 +36,122 @@ void Display_7seg(uint16_t value)
 	CLK_SysTickDelay(5000);
 }
 
-void Display_ERR(void)
-{
-    int i;
-
-    for(i = 3; i >= 0; i--){
-        CloseSevenSegment();
-
-        if(i == 2){
-            ShowSevenSegment(i, 14);
-        }
-        else if(i < 2){
-            ShowSevenSegment(i, 14);
-            PE2 = 1;
-            PE3 = 1;
-            PE5 = 1;
-        }
-
-        CLK_SysTickDelay(5000);
-    }
+void all_display(uint8_t value){
+		CloseSevenSegment();
+		ShowSevenSegment(0,value);
+		CLK_SysTickDelay(5000);
+		
+		CloseSevenSegment();
+		ShowSevenSegment(1,value);
+		CLK_SysTickDelay(5000);
+		
+		CloseSevenSegment();
+		ShowSevenSegment(2,value);
+		CLK_SysTickDelay(5000);
+		
+		CloseSevenSegment();
+		ShowSevenSegment(3,value);		
+		CLK_SysTickDelay(5000);	
 }
+
+//press PB15 will trigger this function 
+int interrupt = 0;
+void EINT1_IRQHandler(void)
+{
+    GPIO_CLR_INT_FLAG(PB, BIT15);	// Clear GPIO interrupt flag
+		
+		interrupt = 1;
+}
+
+
+//from EXTINT sample code 
+void Init_EXTINT(void)
+{
+    // Configure EINT0 pin and enable interrupt by falling edge trigger
+    //GPIO_SetMode(PB, BIT14, GPIO_MODE_INPUT);
+    //GPIO_EnableEINT0(PB, 14, GPIO_INT_FALLING);
+    //NVIC_EnableIRQ(EINT0_IRQn);
+
+    // Configure EINT1 pin and enable interrupt by rising and falling edge trigger
+    GPIO_SetMode(PB, BIT15, GPIO_MODE_INPUT);
+    GPIO_EnableEINT1(PB, 15, GPIO_INT_RISING); // RISING, FALLING, BOTH_EDGE, HIGH, LOW
+    NVIC_EnableIRQ(EINT1_IRQn);
+
+    // Enable interrupt de-bounce function and select de-bounce sampling cycle time
+    GPIO_SET_DEBOUNCE_TIME(GPIO_DBCLKSRC_LIRC, GPIO_DBCLKSEL_64);
+    //GPIO_ENABLE_DEBOUNCE(PB, BIT14);
+    GPIO_ENABLE_DEBOUNCE(PB, BIT15);
+}
+
 
 int main(void)
 {
-    int count = 0, mode = 0, current = 3;
-    uint8_t LED[4] = {0, 0, 0, 0}; // if 1000 leftest is seg rightest -> show 0001
-    uint8_t answer[4] = {4, 3, 2, 1};
-    uint8_t key;
-    uint8_t lastKey = 0;
-    int i, j, flash, correct;
-
-    SYS_Init();
-    OpenSevenSegment();
-    OpenKeyPad();
-
-    while(1){
-        key = ScanKey();
-
-        if(mode == 0){
-            Display_7seg(0);
-
-            if(key == 1){
-                count++;
-
-                if(count >= 150){
-                    count = 0;
-                    current = 3;
-                    mode = 1;
-                }
-            }
-            else{
-                count = 0;
-            }
-        }
-
-        // input mode
-        else if(mode == 1){
-            if(key != 0 && lastKey == 0){
-                if(key == 4){
-                    current++;
-                    if(current > 3) current = 0;
-                }
-
-                if(key == 6){
-                    current--;
-                    if(current < 0) current = 3;
-                }
-
-                if(key == 2){
-                    if(LED[current] >= 9){
-                        LED[current] = 0;
-                    }
-                    else{
-                        LED[current]++;
-                    }
-                }
-
-                if(key == 8){
-                    if(LED[current] < 10 || LED[current] >= 15){
-                        LED[current] = 10;
-                    }
-                    else{
-                        LED[current]++;
-                    }
-                }
+	int num = 0, mode = 0, lastmode = -1, minute = 0, sec = 0, count = 0, timer = 0, lastkey = 0;
+	uint16_t i;
+	uint8_t value = 16;
+	
+	SYS_Init();
+	Init_EXTINT();
+	GPIO_SetMode(PC, BIT12, GPIO_MODE_OUTPUT); // idk what is this
+	
+	OpenSevenSegment();
+	OpenKeyPad();
+	
+	while(1){
+			if(interrupt == 1){
+            if(ScanKey()){
+                interrupt = 0;
+                while(ScanKey()) all_display(value); //wait release key
+                continue;
             }
 
-            for(i = 0; i <= 3; i++){
-                CloseSevenSegment();
-                ShowSevenSegment(i, LED[i]);
-                CLK_SysTickDelay(5000);
+            if(value > 21) value = 16;
+
+            timer = 0;
+            while(timer < 50){
+                all_display(value);
+                timer++;
             }
-            CloseSevenSegment();
+            value++;
+						continue; //skip one time while
+			}
+			
+			i=ScanKey();
+			
+			if(i == 1 && lastkey == 0){ //start
+				mode = 1;
+				lastmode = 1;
 
-            if(key == 9){ //enter compare mode
-                count++;
+			}else if(i == 2 && lastkey == 0){ //pause
+				mode = 2;
+				lastmode = 2;
+			}else if(i == 3 && lastkey == 0){ //reset
+				mode = 3;
+				num = 0;
+				count = 0;
+			}else if(i == 4 && lastkey == 0){ //add 50s
+				mode = 4;
+				num += 50;
+				
+				minute = num / 60;
+				sec = num % 60;
+			}
+			
+			lastkey = i;
+			minute = num / 60;
+			sec = num % 60;
+			Display_7seg(minute * 100 + sec);
 
-                if(count >= 150){
-                    count = 0;
-                    mode = 2;
-                }
-            }
-            else{
-                count = 0;
-            }
-        }
-
-        // compare mode
-        else if(mode == 2){
-            correct = 1;
-
-            for(i = 0; i < 4; i++){
-                if(LED[i] != answer[i]){
-                    correct = 0;
-                }
-            }
-
-            for(flash = 0; flash < 6; flash++){
-                for(j = 0; j < 25; j++){
-                    if(flash % 2 == 0){
-                        if(correct == 1){
-                            Display_7seg(7777);
-                        }
-                        else{
-                            Display_ERR();
-                        }
-                    }
-                    else{
-                        CloseSevenSegment();
-                        CLK_SysTickDelay(20000);
-                    }
-                }
-            }
-
-            CloseSevenSegment();
-
-            for(i = 0; i < 4; i++){
-                LED[i] = 0;
-            }
-
-            count = 0;
-            current = 3;
-            mode = 0;
-        }
-
-        lastKey = key;
-    }
+			
+			if(mode == 1){
+				count++;
+				
+				if(count >= 60){
+					num++;
+					count = 0;
+				}
+			}else if (mode == 4){
+				if(lastmode == 1) mode = 1;
+			}
+		}
 }

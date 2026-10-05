@@ -48,9 +48,9 @@ void OpenSevenSegment(void)
 	GPIO_SetMode(PE, BIT5, GPIO_PMD_QUASI);
 	GPIO_SetMode(PE, BIT6, GPIO_PMD_QUASI);
 	GPIO_SetMode(PE, BIT7, GPIO_PMD_QUASI);
-  PE0=0;
-  PE1=0;
-  PE2=0;
+	PE0=0;
+	PE1=0;
+	PE2=0;
 	PE3=0;
 	PE4=0;
 	PE5=0;

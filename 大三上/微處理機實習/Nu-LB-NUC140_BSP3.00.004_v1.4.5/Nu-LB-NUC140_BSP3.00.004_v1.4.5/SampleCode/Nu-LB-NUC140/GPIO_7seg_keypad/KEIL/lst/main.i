@@ -20726,7 +20726,7 @@ uint8_t ScanKey(void);
 
 void Display_7seg(uint16_t value)
 {
-  uint8_t digit;
+	uint8_t digit;
 	digit = value / 1000;
 	CloseSevenSegment();
 	ShowSevenSegment(3,digit);
@@ -20751,150 +20751,122 @@ void Display_7seg(uint16_t value)
 	CLK_SysTickDelay(5000);
 }
 
-void Display_ERR(void)
-{
-    int i;
-
-    for(i = 3; i >= 0; i--){
-        CloseSevenSegment();
-
-        if(i == 2){
-            ShowSevenSegment(i, 14);
-        }
-        else if(i < 2){
-            ShowSevenSegment(i, 14);
-            (*((volatile uint32_t *)(((((( uint32_t)0x50000000) + 0x4000) + 0x0200)+(0x40*(4))) + ((2)<<2)))) = 1;
-            (*((volatile uint32_t *)(((((( uint32_t)0x50000000) + 0x4000) + 0x0200)+(0x40*(4))) + ((3)<<2)))) = 1;
-            (*((volatile uint32_t *)(((((( uint32_t)0x50000000) + 0x4000) + 0x0200)+(0x40*(4))) + ((5)<<2)))) = 1;
-        }
-
-        CLK_SysTickDelay(5000);
-    }
+void all_display(uint8_t value){
+		CloseSevenSegment();
+		ShowSevenSegment(0,value);
+		CLK_SysTickDelay(5000);
+		
+		CloseSevenSegment();
+		ShowSevenSegment(1,value);
+		CLK_SysTickDelay(5000);
+		
+		CloseSevenSegment();
+		ShowSevenSegment(2,value);
+		CLK_SysTickDelay(5000);
+		
+		CloseSevenSegment();
+		ShowSevenSegment(3,value);		
+		CLK_SysTickDelay(5000);	
 }
+
+
+int interrupt = 0;
+void EINT1_IRQHandler(void)
+{
+    ((((GPIO_T *) (((( uint32_t)0x50000000) + 0x4000) + 0x0040)))->ISRC = (0x00008000));	
+		
+		interrupt = 1;
+}
+
+
+
+void Init_EXTINT(void)
+{
+    
+    
+    
+    
+
+    
+    GPIO_SetMode(((GPIO_T *) (((( uint32_t)0x50000000) + 0x4000) + 0x0040)), 0x00008000, 0x0UL);
+    GPIO_EnableInt(((GPIO_T *) (((( uint32_t)0x50000000) + 0x4000) + 0x0040)), 15, 0x00010000UL); 
+    NVIC_EnableIRQ(EINT1_IRQn);
+
+    
+    (((GPIO_DBNCECON_T *) (((( uint32_t)0x50000000) + 0x4000) + 0x0180))->DBNCECON = ((1ul << 5) | (0x00000010UL) | (0x00000006UL)));
+    
+    ((((GPIO_T *) (((( uint32_t)0x50000000) + 0x4000) + 0x0040)))->DBEN |= (0x00008000));
+}
+
 
 int main(void)
 {
-    int count = 0, mode = 0, current = 3;
-    uint8_t LED[4] = {0, 0, 0, 0}; 
-    uint8_t answer[4] = {4, 3, 2, 1};
-    uint8_t key;
-    uint8_t lastKey = 0;
-    int i, j, flash, correct;
-
-    SYS_Init();
-    OpenSevenSegment();
-    OpenKeyPad();
-
-    while(1){
-        key = ScanKey();
-
-        if(mode == 0){
-            Display_7seg(0);
-
-            if(key == 1){
-                count++;
-
-                if(count >= 150){
-                    count = 0;
-                    current = 3;
-                    mode = 1;
-                }
-            }
-            else{
-                count = 0;
-            }
-        }
-
-        
-        else if(mode == 1){
-            if(key != 0 && lastKey == 0){
-                if(key == 4){
-                    current++;
-                    if(current > 3) current = 0;
-                }
-
-                if(key == 6){
-                    current--;
-                    if(current < 0) current = 3;
-                }
-
-                if(key == 2){
-                    if(LED[current] >= 9){
-                        LED[current] = 0;
-                    }
-                    else{
-                        LED[current]++;
-                    }
-                }
-
-                if(key == 8){
-                    if(LED[current] < 10 || LED[current] >= 15){
-                        LED[current] = 10;
-                    }
-                    else{
-                        LED[current]++;
-                    }
-                }
+	int num = 0, mode = 0, lastmode = -1, minute = 0, sec = 0, count = 0, timer = 0, lastkey = 0;
+	uint16_t i;
+	uint8_t value = 16;
+	
+	SYS_Init();
+	Init_EXTINT();
+	GPIO_SetMode(((GPIO_T *) (((( uint32_t)0x50000000) + 0x4000) + 0x0080)), 0x00001000, 0x1UL); 
+	
+	OpenSevenSegment();
+	OpenKeyPad();
+	
+	while(1){
+			if(interrupt == 1){
+            if(ScanKey()){
+                interrupt = 0;
+                while(ScanKey()) all_display(value); 
+                continue;
             }
 
-            for(i = 0; i <= 3; i++){
-                CloseSevenSegment();
-                ShowSevenSegment(i, LED[i]);
-                CLK_SysTickDelay(5000);
+            if(value > 21) value = 16;
+
+            timer = 0;
+            while(timer < 50){
+                all_display(value);
+                timer++;
             }
-            CloseSevenSegment();
+            value++;
+						continue; 
+			}
+			
+			i=ScanKey();
+			
+			if(i == 1 && lastkey == 0){ 
+				mode = 1;
+				lastmode = 1;
 
-            if(key == 9){ 
-                count++;
+			}else if(i == 2 && lastkey == 0){ 
+				mode = 2;
+				lastmode = 2;
+			}else if(i == 3 && lastkey == 0){ 
+				mode = 3;
+				num = 0;
+				count = 0;
+			}else if(i == 4 && lastkey == 0){ 
+				mode = 4;
+				num += 50;
+				
+				minute = num / 60;
+				sec = num % 60;
+			}
+			
+			lastkey = i;
+			minute = num / 60;
+			sec = num % 60;
+			Display_7seg(minute * 100 + sec);
 
-                if(count >= 150){
-                    count = 0;
-                    mode = 2;
-                }
-            }
-            else{
-                count = 0;
-            }
-        }
-
-        
-        else if(mode == 2){
-            correct = 1;
-
-            for(i = 0; i < 4; i++){
-                if(LED[i] != answer[i]){
-                    correct = 0;
-                }
-            }
-
-            for(flash = 0; flash < 6; flash++){
-                for(j = 0; j < 25; j++){
-                    if(flash % 2 == 0){
-                        if(correct == 1){
-                            Display_7seg(7777);
-                        }
-                        else{
-                            Display_ERR();
-                        }
-                    }
-                    else{
-                        CloseSevenSegment();
-                        CLK_SysTickDelay(20000);
-                    }
-                }
-            }
-
-            CloseSevenSegment();
-
-            for(i = 0; i < 4; i++){
-                LED[i] = 0;
-            }
-
-            count = 0;
-            current = 3;
-            mode = 0;
-        }
-
-        lastKey = key;
-    }
+			
+			if(mode == 1){
+				count++;
+				
+				if(count >= 60){
+					num++;
+					count = 0;
+				}
+			}else if (mode == 4){
+				if(lastmode == 1) mode = 1;
+			}
+		}
 }

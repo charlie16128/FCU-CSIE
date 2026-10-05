@@ -38,6 +38,7 @@ void showled(int number)
 int main(void)
 {
     int key;
+    int lastkey;
     int mode = 1;     
     int lastmode = 1; 
     int CurrentLed = 12;
@@ -49,24 +50,23 @@ int main(void)
     while(1){
         key = ScanKey();
 
-        if(key == 1){
+        if(key == 1 && lastkey == 0){
             mode = 1;
             lastmode = 1;
-			while(ScanKey() == 1); //wait 
-        }else if(key == 2){
+			 
+        }else if(key == 2 && lastkey == 0){
             if(mode == 2)
                 mode = lastmode;    
             else{
                 lastmode = mode;    
                 mode = 2;
             }
-            while(ScanKey() == 2);//wait
-        }else if(key == 3){
+        }else if(key == 3 && lastkey == 0){
             mode = 3;
             lastmode = 3;
-			while(ScanKey() == 3);//wait
         }
-				
+		
+        lastkey = key;
 				
         if(mode == 1){
             showled(CurrentLed);

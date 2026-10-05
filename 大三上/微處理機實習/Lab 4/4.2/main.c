@@ -11,7 +11,7 @@
 // display an integer on four 7-segment LEDs
 void Display_7seg(uint16_t value)
 {
-  uint8_t digit;
+	uint8_t digit;
 	digit = value / 1000;
 	CloseSevenSegment();
 	ShowSevenSegment(3,digit);
@@ -86,18 +86,18 @@ void Init_EXTINT(void)
 
 int main(void)
 {
-		int num = 0, mode = 0, lastmode = -1, minute = 0, sec = 0, count = 0, timer = 0;
-		uint16_t i;
-		uint8_t value = 16;
+	int num = 0, mode = 0, lastmode = -1, minute = 0, sec = 0, count = 0, timer = 0, lastkey = 0;
+	uint16_t i;
+	uint8_t value = 16;
 	
-    SYS_Init();
-		Init_EXTINT();
-		GPIO_SetMode(PC, BIT12, GPIO_MODE_OUTPUT); // idk what is this
+	SYS_Init();
+	Init_EXTINT();
+	GPIO_SetMode(PC, BIT12, GPIO_MODE_OUTPUT); // idk what is this
 	
-    OpenSevenSegment();
-		OpenKeyPad();
+	OpenSevenSegment();
+	OpenKeyPad();
 	
- 	  while(1){
+	while(1){
 			if(interrupt == 1){
             if(ScanKey()){
                 interrupt = 0;
@@ -118,26 +118,26 @@ int main(void)
 			
 			i=ScanKey();
 			
-			if(i == 1){ //start
+			if(i == 1 && lastkey == 0){ //start
 				mode = 1;
 				lastmode = 1;
 
-			}else if(i == 2){ //pause
+			}else if(i == 2 && lastkey == 0){ //pause
 				mode = 2;
 				lastmode = 2;
-			}else if(i == 3){ //reset
+			}else if(i == 3 && lastkey == 0){ //reset
 				mode = 3;
 				num = 0;
 				count = 0;
-			}else if(i == 4){ //add 50s
+			}else if(i == 4 && lastkey == 0){ //add 50s
 				mode = 4;
 				num += 50;
 				
 				minute = num / 60;
 				sec = num % 60;
-				while(ScanKey()) Display_7seg(minute * 100 + sec);//wait release key
 			}
 			
+			lastkey = i;
 			minute = num / 60;
 			sec = num % 60;
 			Display_7seg(minute * 100 + sec);
